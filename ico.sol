@@ -162,9 +162,8 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
     
     uint multiplier = 10000000000; // to provide 10 decimal values
-    // Looping through Backer
     mapping(address => Backer) public backers; //backer list
-    address[] public backersIndex ;   // to be able to itarate through backers when distributing the tokens. 
+    address[] public backersIndex ;   // to be able to itarate through backers for verification.  
 
     // @notice to be used when certain account is required to access the function
     // @param a {address}  The address of the authorised individual
@@ -295,8 +294,9 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         if (!owner.send(this.balance)) throw;
     }
 
-    // Refund backer if minimum is not reached
-    function receiveApproval() minCapNotReached public {
+    // @notice Refund backer if minimum is not reached
+    // return res {bool}
+    function receiveApproval() minCapNotReached public returns (bool res){
         uint value = backers[msg.sender].PPPSent;
 
         if (value == 0) throw;
@@ -306,8 +306,10 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         uint ETHToSend = backers[msg.sender].weiReceived;
         backers[msg.sender].weiReceived = 0;
         if (ETHToSend > 0) {
-            asyncSend(msg.sender, ETHToSend);
+            asyncSend(msg.sender, ETHToSend);  // Store sent amount as credit to be pulled, called by payer
         }
+
+        return true;
     }
 }
 
