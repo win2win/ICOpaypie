@@ -198,11 +198,11 @@ contract Presale is SafeMath, Pausable{
       
         Backer backer = backers[_backer];
        
-        backer.PPPSent = safeAdd(backer.PPPSent, PPPToSend); // update 
-        backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
-        ETHReceived = safeAdd(ETHReceived, msg.value); // Update the total Ether recived
-        PPPSentToETH = safeAdd(PPPSentToETH, PPPToSend);
-        backersIndex.push(_backer);
+        backer.PPPSent = safeAdd(backer.PPPSent, PPPToSend); // update amount of tokens sent for the backer
+        backer.weiReceived = safeAdd(backer.weiReceived, msg.value); // update amount of ether received from the backer
+        ETHReceived = safeAdd(ETHReceived, msg.value); // update the total Ether recived
+        PPPSentToETH = safeAdd(PPPSentToETH, PPPToSend); // update the total amount of tokens sent so far
+        backersIndex.push(_backer);  // maintain iterrable index of backers
        
         ReceivedETH(_backer, msg.value, PPPToSend); // Register event
         return true;
@@ -214,7 +214,7 @@ contract Presale is SafeMath, Pausable{
 
       function calculateNoOfTokensToSend() constant internal returns (uint){
 
-        uint tokenAmount = (msg.value * multiplier) / tokenPriceWei;
+        uint tokenAmount = safeDiv(safeMul(msg.value , multiplier) , tokenPriceWei);
         uint ethAmount = msg.value;
 
        if (ethAmount > 105 ether )  
