@@ -244,7 +244,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
         if (msg.value < minInvestETH) throw; // stop when required minimum is not sent
 
-        uint PPPToSend = (msg.value / tokenPriceWei) * multiplier;
+        uint PPPToSend = safeDiv(msg.value , tokenPriceWei) * multiplier;
 
         // Ensure that max cap hasn't been reached
         if (safeAdd(PPPSentToETH, PPPToSend) > maxCap) throw;
