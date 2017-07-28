@@ -141,15 +141,12 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
     struct Backer {
         uint weiReceived; // amount of ETH contributed
-        uint PPPSent; // amount of tokens  sent
-        bool processed;
+        uint PPPSent; // amount of tokens  sent        
     }
 
-    PPP public ppp; // PPP contract reference
-    address public owner; // Contract owner
-    address public multisigETH; // Multisig contract that will receive the ETH
-    address public team; // Address at which the team PPP will be sent
-    address public lottery; // Address for 50% of remaining tokens
+    PPP public ppp; // PPP contract reference   
+    address public multisigETH; // Multisig contract that will receive the ETH    
+    address public team; // Address at which the team PPP will be sent   
     uint public tokensForTeam; // Tokens to be allocated to team if campaign succeeds
     uint public ETHReceived; // Number of ETH received
     uint public PPPSentToETH; // Number of PPP sent to ETH contributors
@@ -160,8 +157,8 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     uint public minInvestETH; // Minimum amount to invest
     bool public crowdsaleClosed; // Is crowdsale still on going
 
-    uint totalTokensSold;
-    uint tokenPriceWei;
+    uint public totalTokensSold;
+    uint public tokenPriceWei;
 
     
     uint multiplier = 10000000000; // to provide 10 decimal values
@@ -193,32 +190,34 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // Crowdsale  {constructor}
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Crowdsale() {
-        owner = msg.sender;
+       
         multisigETH = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
         team = 0x027127930D9ae133C08AE480A6E6C2caf1e87861; //TODO: Replace address with correct one
         tokensForTeam = 27500000 * multiplier;
         //TODO: replace with amount of presale tokens
-        PPPSentToETH = 6500000 * multiplier;
+        PPPSentToETH = 6500000 * multiplier;  // initilaize token number sold in presale
         //TODO: Set this to 250 before deploying
         minInvestETH = 1 ether;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start
         //TODO: Reduce this max cap by presale amount
-        maxCap = 82500000 * multiplier;
+        maxCap = 82500000 * multiplier;  // reserve tokens for the team
         // Price is 0.0011 eth
         tokenPriceWei = 1100000000000000;
-        minCap = 10500 ether / tokenPriceWei;
+        minCap = 10500 ether / tokenPriceWei * multiplier;
     }
 
-    // Specify address of token contract
-    function updateTokenAddress(PPP _PPPAddress) public onlyBy(owner) returns(bool) {
-        ppp = _PPPAddress;
+    // @notice Specify address of token contract
+    // @param _PPPAddress {address} address of PPP token contrac
+    // @return res {bool}
+    function updateTokenAddress(PPP _PPPAddress) public onlyBy(owner) returns(bool res) {
+        ppp = _PPPAddress;  
         return true;
     }
 
 
-    // @notice check the number of contributions 
-    // @return  {uint} true if transaction was successful
+    // @notice return number of contributors
+    // @return  {uint} number of contributors
     function numberOfBackers()constant returns (uint){
         return backersIndex.length;
     }
@@ -253,7 +252,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
         Backer backer = backers[_backer];
 
-        if (!PPP.transfer(_backer, PPPToSend)) throw; // Transfer PPP tokens
+        if (!ppp.transfer(_backer, PPPToSend)) throw; // Transfer PPP tokens
         backer.PPPSent = safeAdd(backer.PPPSent, PPPToSend);
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
         ETHReceived = safeAdd(ETHReceived, msg.value); // Update the total Ether recived
@@ -265,9 +264,6 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         return true;
     }
 
-    // @notice It is called by handleETH to determine amount of tokens for given contribution
-    // @param _amount {uint} current range computed
-    // @return tokensToPurchase {uint} value of tokens to purchase
 
     // @notice This function will finalize the sale.
     // It will only execute if predetermined sale time passed or all tokens are sold.
@@ -282,11 +278,11 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         if (PPPSentToETH < minCap && block.number < (endBlock + daysToRefund)) throw;
 
         uint remainingTokens = maxCap - PPPSentToETH;
+        tokensForTeam += remainingTokens;
 
         if (PPPSentToETH > minCap) {
             if (!multisigETH.send(this.balance)) throw;
-            if(!ppp.transfer(multisigPPP, remainingTokens)) throw;
-            if (!ppp.transfer(team, tokensForTeam)) throw;
+            if (!ppp.transfer(team, remainingTokens)) throw;          
         }
 
         crowdsaleClosed = true;
