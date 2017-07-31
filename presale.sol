@@ -163,7 +163,7 @@ contract Presale is SafeMath, Pausable{
     // @param _backer {address} address of beneficiary
     function process(address _backer) onlyBy(owner) returns (bool){
 
-        Backer backer = backers[_backer]; 
+        Backer storage backer = backers[_backer]; 
         backer.processed = true;
 
         return true;
@@ -196,7 +196,7 @@ contract Presale is SafeMath, Pausable{
          uint PPPToSend = calculateNoOfTokensToSend(); // calculate number of tokens basedn on contribution size
 
       
-        Backer backer = backers[_backer];
+        Backer storage backer = backers[_backer];
        
         backer.PPPSent = safeAdd(backer.PPPSent, PPPToSend); // update amount of tokens sent for the backer
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value); // update amount of ether received from the backer

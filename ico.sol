@@ -249,7 +249,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         // Ensure that max cap hasn't been reached
         if (safeAdd(PPPSentToETH, PPPToSend) > maxCap) revert();
 
-        Backer backer = backers[_backer];
+        Backer storage backer = backers[_backer];
 
         if (!ppp.transfer(_backer, PPPToSend)) revert(); // Transfer PPP tokens
         backer.PPPSent = safeAdd(backer.PPPSent, PPPToSend);
