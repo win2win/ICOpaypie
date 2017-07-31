@@ -27,7 +27,7 @@ contract SafeMath {
 
     function assert(bool assertion) internal {
         if (!assertion) {
-            throw;
+            revert();
         }
     }
 }
@@ -76,14 +76,14 @@ contract Pausable is Ownable {
 
     modifier stopInEmergency {
         if (stopped) {
-            throw;
+            revert();
         }
         _;
     }
 
     modifier onlyInEmergency {
         if (!stopped) {
-            throw;
+            revert();
         }
         _;
     }
@@ -119,17 +119,17 @@ contract PullPayment {
         uint payment = payments[payee];
 
         if (payment == 0) {
-            throw;
+            revert();
         }
 
         if (this.balance < payment) {
-            throw;
+            revert();
         }
 
         payments[payee] = 0;
 
         if (!payee.send(payment)) {
-            throw;
+            revert();
         }
         RefundETH(payee, payment);
     }
@@ -168,18 +168,18 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // @notice to be used when certain account is required to access the function
     // @param a {address}  The address of the authorised individual
     modifier onlyBy(address a) {
-        if (msg.sender != a) throw;
+        if (msg.sender != a) revert();
         _;
     }
 
     // @notice to verify if action is not performed out of the campaing range
     modifier respectTimeFrame() {
-        if ((block.number < startBlock) || (block.number > endBlock)) throw;
+        if ((block.number < startBlock) || (block.number > endBlock)) revert();
         _;
     }
 
     modifier minCapNotReached() {
-        if (PPPSentToETH >= minCap) throw;
+        if (PPPSentToETH >= minCap) revert();
         _;
     }
 
@@ -224,7 +224,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // {fallback function}
     // @notice It will call internal function which handels allocation of Ether and calculates PPP tokens.
     function () payable {
-        if (block.number > endBlock) throw;
+        if (block.number > endBlock) revert();
         handleETH(msg.sender);
     }
 
@@ -242,16 +242,16 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // @return res {bool} true if transaction was successful
     function handleETH(address _backer) internal stopInEmergency respectTimeFrame returns(bool res) {
 
-        if (msg.value < minInvestETH) throw; // stop when required minimum is not sent
+        if (msg.value < minInvestETH) revert(); // stop when required minimum is not sent
 
         uint PPPToSend = safeDiv(msg.value , tokenPriceWei) * multiplier;
 
         // Ensure that max cap hasn't been reached
-        if (safeAdd(PPPSentToETH, PPPToSend) > maxCap) throw;
+        if (safeAdd(PPPSentToETH, PPPToSend) > maxCap) revert();
 
         Backer backer = backers[_backer];
 
-        if (!ppp.transfer(_backer, PPPToSend)) throw; // Transfer PPP tokens
+        if (!ppp.transfer(_backer, PPPToSend)) revert(); // Transfer PPP tokens
         backer.PPPSent = safeAdd(backer.PPPSent, PPPToSend);
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
         ETHReceived = safeAdd(ETHReceived, msg.value); // Update the total Ether recived
@@ -272,16 +272,16 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         //uint daysToRefund = 4*60*24*15;
         uint daysToRefund = 10;
 
-        if (block.number < endBlock && PPPSentToETH < maxCap) throw;
+        if (block.number < endBlock && PPPSentToETH < maxCap) revert();
 
-        if (PPPSentToETH < minCap && block.number < (endBlock + daysToRefund)) throw;
+        if (PPPSentToETH < minCap && block.number < (endBlock + daysToRefund)) revert();
 
         uint remainingTokens = maxCap - PPPSentToETH;
         tokensForTeam += remainingTokens;
 
         if (PPPSentToETH > minCap) {
-            if (!multisigETH.send(this.balance)) throw;
-            if (!ppp.transfer(team, remainingTokens)) throw;          
+            if (!multisigETH.send(this.balance)) revert();
+            if (!ppp.transfer(team, remainingTokens)) revert();          
         }
 
         crowdsaleClosed = true;
@@ -291,7 +291,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // TODO do we want this here?
     // @notice Failsafe drain
     function drain() onlyBy(owner) {
-        if (!owner.send(this.balance)) throw;
+        if (!owner.send(this.balance)) revert();
     }
 
     // @notice Refund backer if minimum is not reached
@@ -299,10 +299,10 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     function receiveApproval() minCapNotReached public returns (bool res){
         uint value = backers[msg.sender].PPPSent;
 
-        if (value == 0) throw;
+        if (value == 0) revert();
 
         ppp.failedSaleApproval(msg.sender, value);  // approve transfer of tokens by this contract
-        if (!ppp.transferFrom(msg.sender, address(this), value)) throw; // get the token back to the crowdsale contract
+        if (!ppp.transferFrom(msg.sender, address(this), value)) revert(); // get the token back to the crowdsale contract
         uint ETHToSend = backers[msg.sender].weiReceived;
         backers[msg.sender].weiReceived = 0;
         if (ETHToSend > 0) {
@@ -331,12 +331,12 @@ contract PPP is ERC20, SafeMath, Ownable {
 
     // Lock transfer during the ICO
     modifier onlyUnlocked() {
-        if (msg.sender != crowdSaleAddress && locked) throw;
+        if (msg.sender != crowdSaleAddress && locked) revert();
         _;
     }
 
     modifier onlyAuthorized() {
-        if (msg.sender != owner && msg.sender != crowdSaleAddress) throw;
+        if (msg.sender != owner && msg.sender != crowdSaleAddress) revert();
         _;
     }
 
@@ -378,9 +378,9 @@ contract PPP is ERC20, SafeMath, Ownable {
 
     /* A contract attempts to get the coins */
     function transferFrom(address _from, address _to, uint256 _value) returns(bool success) {
-        if (balances[_from] < _value) throw; // Check if the sender has enough
-        if (safeAdd(balances[_to], _value) < balances[_to]) throw; // Check for overflows
-        if (_value > allowed[_from][msg.sender]) throw; // Check allowance
+        if (balances[_from] < _value) revert(); // Check if the sender has enough
+        if (safeAdd(balances[_to], _value) < balances[_to]) revert(); // Check for overflows
+        if (_value > allowed[_from][msg.sender]) revert(); // Check allowance
         balances[_from] = safeSub(balances[_from], _value); // Subtract from the sender
         balances[_to] = safeAdd(balances[_to], _value); // Add the same to the recipient
         allowed[_from][msg.sender] = safeSub(allowed[_from][msg.sender], _value);

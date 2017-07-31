@@ -27,7 +27,7 @@ contract SafeMath {
 
     function assert(bool assertion) internal {
         if (!assertion) {
-            throw;
+            revert();
         }
     }
 }
@@ -61,14 +61,14 @@ contract Pausable is Ownable {
 
     modifier stopInEmergency {
         if (stopped) {
-            throw;
+            revert();
         }
         _;
     }
 
     modifier onlyInEmergency {
         if (!stopped) {
-            throw;
+            revert();
         }
         _;
     }
@@ -120,13 +120,13 @@ contract Presale is SafeMath, Pausable{
     // @notice to be used when certain account is required to access the function
     // @param a {address}  The address of the authorised individual
     modifier onlyBy(address a) {
-        if (msg.sender != a) throw;
+        if (msg.sender != a) revert();
         _;
     }
 
     // @notice to verify if action is not performed out of the campaing range
     modifier respectTimeFrame() {
-        if ((block.number < startBlock) || (block.number > endBlock)) throw;
+        if ((block.number < startBlock) || (block.number > endBlock)) revert();
         _;
     }
 
@@ -173,7 +173,7 @@ contract Presale is SafeMath, Pausable{
     // {fallback function}
     // @notice It will call internal function which handels allocation of Ether and calculates PPP tokens.
     function () payable {
-        if (block.number > endBlock) throw;
+        if (block.number > endBlock) revert();
         handleETH(msg.sender);
     }
 
@@ -191,7 +191,7 @@ contract Presale is SafeMath, Pausable{
     // @return res {bool} true if transaction was successful
     function handleETH(address _backer) internal stopInEmergency respectTimeFrame returns(bool res) {
 
-        if (msg.value < minInvestETH) throw; // stop when required minimum is not sent
+        if (msg.value < minInvestETH) revert(); // stop when required minimum is not sent
 
          uint PPPToSend = calculateNoOfTokensToSend(); // calculate number of tokens basedn on contribution size
 
@@ -233,9 +233,9 @@ contract Presale is SafeMath, Pausable{
     // It will only execute if predetermined sale time passed 
     function finalize() onlyBy(owner) {       
 
-        if (block.number < endBlock ) throw; 
+        if (block.number < endBlock ) revert(); 
 
-        if (!multisigETH.send(this.balance)) throw;
+        if (!multisigETH.send(this.balance)) revert();
         presaleClosed = true;
         
     }
@@ -243,7 +243,7 @@ contract Presale is SafeMath, Pausable{
     // TODO do we want this here?
     // @notice Failsafe drain
     function drain() onlyBy(owner) {
-        if (!owner.send(this.balance)) throw;
+        if (!owner.send(this.balance)) revert();
     }
 
 }
