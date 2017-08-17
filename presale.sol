@@ -3,29 +3,29 @@ pragma solidity ^ 0.4 .11;
 contract SafeMath {
     function safeMul(uint a, uint b) internal returns(uint) {
         uint c = a * b;
-        assert(a == 0 || c / a == b);
+        assertCust(a == 0 || c / a == b);
         return c;
     }
 
     function safeDiv(uint a, uint b) internal returns(uint) {
-        assert(b > 0);
+        assertCust(b > 0);
         uint c = a / b;
-        assert(a == b * c + a % b);
+        assertCust(a == b * c + a % b);
         return c;
     }
 
     function safeSub(uint a, uint b) internal returns(uint) {
-        assert(b <= a);
+        assertCust(b <= a);
         return a - b;
     }
 
     function safeAdd(uint a, uint b) internal returns(uint) {
         uint c = a + b;
-        assert(c >= a && c >= b);
+        assertCust(c >= a && c >= b);
         return c;
     }
 
-    function assert(bool assertion) internal {
+    function assertCust(bool assertion) internal {
         if (!assertion) {
             revert();
         }
@@ -52,7 +52,7 @@ contract Ownable {
 
     modifier onlyOwner() {
         if (msg.sender == owner)
-        _;
+            _;
     }
 }
 
@@ -85,37 +85,75 @@ contract Pausable is Ownable {
 }
 
 
+contract ERC20 {
+    uint public totalSupply;
+
+    function balanceOf(address who) constant returns(uint);
+
+    function allowance(address owner, address spender) constant returns(uint);
+
+    function transfer(address to, uint value) returns(bool ok);
+
+    function transferFrom(address from, address to, uint value) returns(bool ok);
+
+    function approve(address spender, uint value) returns(bool ok);
+
+    event Transfer(address indexed from, address indexed to, uint value);
+    event Approval(address indexed owner, address indexed spender, uint value);
+}
 
 
+contract PPP is ERC20, SafeMath, Ownable {
+
+    function transfer(address _to, uint _value) returns(bool);
+}
 
 // Presale Smart Contract
 // This smart contract collects ETH and in return sends PPP tokens to the backers
-contract Presale is SafeMath, Pausable{
+contract Presale is SafeMath, Pausable {
 
     struct Backer {
         uint weiReceived; // amount of ETH contributed
-        uint PPPSent; // amount of tokens  sent
+        uint TokensToSend; // amount of tokens  sent
         bool processed;
+        bool refunded;
     }
 
-    
+
     address public owner; // Contract owner
-    address public multisigETH; // Multisig contract that will receive the ETH    
+    address public multisig; // Multisig contract that will receive the ETH    
     uint public ETHReceived; // Number of ETH received
     uint public PPPSentToETH; // Number of PPP sent to ETH contributors
     uint public startBlock; // Presale start block
     uint public endBlock; // Presale end block
-    
+
     uint public minInvestETH; // Minimum amount to invest
     bool public presaleClosed; // Is presale still on going
+    //enum Step{Unknown, Funding, Distributing, Refunding};
 
-    uint totalTokensSold;
-    uint tokenPriceWei;
+    enum Step {
+        Unknown,
+        Funding,
+        Distributing,
+        Refunding
+    }
 
-    
+
+    uint public tokenPriceWei;
+    PPP public token;
+
+
     uint multiplier = 10000000000; // to provide 10 decimal values
     mapping(address => Backer) public backers; //backer list
-    address[] public backersIndex ;   // to be able to itarate through backers when distributing the tokens. 
+    address[] public backersIndex;
+    uint public claimCount;
+    uint public totalClaimed;
+    Step public currentStep;
+
+
+    //enum Step{Unknown, Funding, Distributing, Refunding};
+
+    mapping(address => uint) public claimed; // Tokens claimed by investor
 
     // @notice to be used when certain account is required to access the function
     // @param a {address}  The address of the authorised individual
@@ -130,10 +168,12 @@ contract Presale is SafeMath, Pausable{
         _;
     }
 
- 
+
 
     // Events
     event ReceivedETH(address backer, uint amount, uint tokenAmount);
+    event TokensClaimed(address backer, uint count);
+    event Refunded(address backer, uint amount);
 
 
 
@@ -141,39 +181,39 @@ contract Presale is SafeMath, Pausable{
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Presale() {
         owner = msg.sender;
-        multisigETH = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
-        
-        
+        multisig = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
+
+
         PPPSentToETH = 0;
         //TODO: Update this before deploying
         minInvestETH = 1 ether;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start       
-        tokenPriceWei = 1100000000000000;        
+        tokenPriceWei = 1100000000000000;
+        currentStep = Step.Funding;
     }
 
     // @notice to loop thoruhg backersIndex and assign tokens
     // @return  {uint} true if transaction was successful
-    function numberOfBackers()constant returns (uint){
+    function numberOfBackers() constant returns(uint) {
         return backersIndex.length;
     }
 
 
-    // @notice called to mark contributer when tokens are transfered to them after ICO
+    // @notice called to mark contributors when tokens are transfered to them after ICO
     // @param _backer {address} address of beneficiary
-    function process(address _backer) onlyBy(owner) returns (bool){
+    function process(address _backer) onlyBy(owner) returns(bool) {
 
-        Backer storage backer = backers[_backer]; 
+        Backer storage backer = backers[_backer];
         backer.processed = true;
 
         return true;
     }
 
-    
+
     // {fallback function}
     // @notice It will call internal function which handels allocation of Ether and calculates PPP tokens.
     function () payable {
-        if (block.number > endBlock) revert();
         handleETH(msg.sender);
     }
 
@@ -186,25 +226,43 @@ contract Presale is SafeMath, Pausable{
         // enable this for live assuming each bloc takes 15 sec = 7 days.
     }
 
+
+    function setStep(Step _step) onlyBy(owner) {
+        currentStep = _step;
+    }
+
+
+    function setToken(PPP _token) onlyBy(owner) returns(bool) {
+
+        token = _token;
+        return true;
+
+    }
     // @notice It will be called by fallback function whenever ether is sent to it
     // @param  _backer {address} address of beneficiary
     // @return res {bool} true if transaction was successful
     function handleETH(address _backer) internal stopInEmergency respectTimeFrame returns(bool res) {
 
+        if (currentStep != Step.Funding)
+            revert();
+
         if (msg.value < minInvestETH) revert(); // stop when required minimum is not sent
 
-         uint PPPToSend = calculateNoOfTokensToSend(); // calculate number of tokens basedn on contribution size
+        uint TokensToSend = calculateNoOfTokensToSend();
 
-      
+
         Backer storage backer = backers[_backer];
-       
-        backer.PPPSent = safeAdd(backer.PPPSent, PPPToSend); // update amount of tokens sent for the backer
-        backer.weiReceived = safeAdd(backer.weiReceived, msg.value); // update amount of ether received from the backer
-        ETHReceived = safeAdd(ETHReceived, msg.value); // update the total Ether recived
-        PPPSentToETH = safeAdd(PPPSentToETH, PPPToSend); // update the total amount of tokens sent so far
-        backersIndex.push(_backer);  // maintain iterrable index of backers
-       
-        ReceivedETH(_backer, msg.value, PPPToSend); // Register event
+
+        if (backer.weiReceived == 0)
+            backersIndex.push(_backer);
+
+        backer.TokensToSend = safeAdd(backer.TokensToSend, TokensToSend);
+        backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
+        ETHReceived = safeAdd(ETHReceived, msg.value); // Update the total Ether recived
+        PPPSentToETH = safeAdd(PPPSentToETH, TokensToSend);
+
+
+        ReceivedETH(_backer, msg.value, TokensToSend); // Register event
         return true;
     }
 
@@ -212,39 +270,93 @@ contract Presale is SafeMath, Pausable{
     // @return tokensToPurchase {uint} value of tokens to purchase
 
 
-      function calculateNoOfTokensToSend() constant internal returns (uint){
+    function calculateNoOfTokensToSend() constant internal returns(uint) {
 
-        uint tokenAmount = safeDiv(safeMul(msg.value , multiplier) , tokenPriceWei);
+        uint tokenAmount = (msg.value * multiplier) / tokenPriceWei;
         uint ethAmount = msg.value;
 
-       if (ethAmount > 105 ether )  
-           return  tokenAmount +  safeDiv( safeMul(tokenAmount , 22), 100);
-        else if (ethAmount >   55 ether)
-           return  tokenAmount +  safeDiv( safeMul(tokenAmount , 10), 100); 
-        else if (ethAmount >   28 ether) 
-            return  tokenAmount + safeDiv( safeMul(tokenAmount , 5), 100); 
-        else if (ethAmount >   5 ether) 
-            return  tokenAmount + safeDiv( safeMul(tokenAmount , 2), 100);
-        else return  tokenAmount; 
-    
+        if (ethAmount > 105 ether)
+            return tokenAmount + (tokenAmount * 22) / 100;
+        else if (ethAmount > 55 ether)
+            return tokenAmount + (tokenAmount * 10) / 100;
+        else if (ethAmount > 28 ether)
+            return tokenAmount + (tokenAmount * 5) / 100;
+        else if (ethAmount > 5 ether)
+            return tokenAmount + (tokenAmount * 2) / 100;
+        else return tokenAmount;
+
     }
 
     // @notice This function will finalize the sale.
     // It will only execute if predetermined sale time passed 
-    function finalize() onlyBy(owner) {       
+    function finalize() onlyBy(owner) {
 
-        if (block.number < endBlock ) revert(); 
+        if (block.number < endBlock) revert();
 
-        if (!multisigETH.send(this.balance)) revert();
+        if (!multisig.send(this.balance)) revert();
         presaleClosed = true;
-        
+
     }
 
-    // TODO do we want this here?
+
+    // @notice Backers can claim tokens after public ICO is finished
+    function claimTokens() stopInEmergency {
+
+
+        if (currentStep != Step.Distributing)   // ensure that we are ready for this step
+            revert();
+
+        if (token == address(0))  // address of the token is set after ICO, ensure that it is already set
+            revert();
+
+        Backer storage backer = backers[msg.sender];
+
+        if (backer.refunded) revert();  // if refunded, don't allow for another refund
+
+        if (backer.processed) revert(); // if tokens claimed, don't allow refunding
+
+        if (backer.TokensToSend == 0)   // only continue if are any tokens to send
+            revert();
+
+        claimCount++;
+
+        claimed[msg.sender] = backer.TokensToSend;  // save claimed tokens
+        backer.processed = true;
+
+        totalClaimed = safeAdd(totalClaimed, backer.TokensToSend);
+        
+        if (!token.transfer(msg.sender, backer.TokensToSend)) revert(); // send claimed tokens to contributor account
+
+        TokensClaimed(msg.sender, backer.TokensToSend);  
+
+    }
+
+    // @notice allow refund when ICO failed
+    // the step will be set when main ICO finished 
+    function refund() stopInEmergency {
+
+        if (currentStep != Step.Refunding)
+            revert();
+
+        Backer storage backer = backers[msg.sender];
+
+        
+        if (backer.processed) revert();  // check if tokens have been allocated already
+
+        
+        if (backer.refunded) revert();  // check if user has been already refunded
+
+        backer.refunded = true; // mark contributor as refunded. 
+
+        if (!msg.sender.send(backer.weiReceived))  // refund contribution
+            revert();
+
+        Refunded(msg.sender, backer.weiReceived);
+    }
+
+
     // @notice Failsafe drain
     function drain() onlyBy(owner) {
         if (!owner.send(this.balance)) revert();
     }
-
 }
-
