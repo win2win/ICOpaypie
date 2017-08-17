@@ -155,12 +155,6 @@ contract Presale is SafeMath, Pausable {
 
     mapping(address => uint) public claimed; // Tokens claimed by investor
 
-    // @notice to be used when certain account is required to access the function
-    // @param a {address}  The address of the authorised individual
-    modifier onlyBy(address a) {
-        if (msg.sender != a) revert();
-        _;
-    }
 
     // @notice to verify if action is not performed out of the campaing range
     modifier respectTimeFrame() {
@@ -200,12 +194,21 @@ contract Presale is SafeMath, Pausable {
     }
 
 
-    // @notice called to mark contributors when tokens are transfered to them after ICO
+    // @notice called to mark contributors when tokens are transfered to them after ICO manually. 
     // @param _backer {address} address of beneficiary
-    function process(address _backer) onlyBy(owner) returns(bool) {
+    function claimTokensForUser(address _backer) onlyOwner() returns(bool) {
+
+        if (backer.refunded) revert();  // if refunded, don't allow for another refund
+        if (backer.processed) revert(); // if tokens claimed, don't allow refunding
+        if (backer.TokensToSend == 0) revert();  // only continue if are any tokens to send
+            
 
         Backer storage backer = backers[_backer];
         backer.processed = true;
+
+        if (!token.transfer(_backer, backer.TokensToSend)) revert(); // send claimed tokens to contributor account
+
+        TokensClaimed(msg.sender, backer.TokensToSend);  
 
         return true;
     }
@@ -219,7 +222,7 @@ contract Presale is SafeMath, Pausable {
 
     // @notice It will be called by owner to start the sale
     // TODO WARNING REMOVE _block parameter and _block variable in function
-    function start(uint _block) onlyBy(owner) {
+    function start(uint _block) onlyOwner() {
         startBlock = block.number;
         endBlock = startBlock + _block; //TODO: Replace 20 with 161280 for actual deployment
         // 4 weeks in blocks = 161280 (4 * 60 * 24 * 7 * 4)
@@ -227,12 +230,12 @@ contract Presale is SafeMath, Pausable {
     }
 
 
-    function setStep(Step _step) onlyBy(owner) {
+    function setStep(Step _step) onlyOwner() {
         currentStep = _step;
     }
 
 
-    function setToken(PPP _token) onlyBy(owner) returns(bool) {
+    function setToken(PPP _token) onlyOwner() returns(bool) {
 
         token = _token;
         return true;
@@ -289,7 +292,7 @@ contract Presale is SafeMath, Pausable {
 
     // @notice This function will finalize the sale.
     // It will only execute if predetermined sale time passed 
-    function finalize() onlyBy(owner) {
+    function finalize() onlyOwner() {
 
         if (block.number < endBlock) revert();
 
@@ -348,7 +351,7 @@ contract Presale is SafeMath, Pausable {
 
 
     // @notice Failsafe drain
-    function drain() onlyBy(owner) {
+    function drain() onlyOwner(){
         if (!owner.send(this.balance)) revert();
     }
 }

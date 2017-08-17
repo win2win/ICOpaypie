@@ -89,12 +89,12 @@
         }
 
         // Called by the owner in emergency, triggers stopped state
-        function emergencyStop() external onlyOwner {
+        function emergencyStop() external onlyOwner() {
             stopped = true;
         }
 
         // Called by the owner to end of emergency, returns to normal state
-        function release() external onlyOwner onlyInEmergency {
+        function release() external onlyOwner() onlyInEmergency {
             stopped = false;
         }
     }
@@ -167,12 +167,7 @@
         mapping(address => Backer) public backers; //backer list
         address[] public backersIndex; // to be able to itarate through backers for verification.  
 
-        // @notice to be used when certain account is required to access the function
-        // @param a {address}  The address of the authorised individual
-        modifier onlyBy(address a) {
-            if (msg.sender != a) revert();
-            _;
-        }
+
 
         // @notice to verify if action is not performed out of the campaing range
         modifier respectTimeFrame() {
@@ -211,7 +206,7 @@
         // @notice Specify address of token contract
         // @param _PPPAddress {address} address of PPP token contrac
         // @return res {bool}
-        function updateTokenAddress(PPP _PPPAddress) public onlyBy(owner) returns(bool res) {
+        function updateTokenAddress(PPP _PPPAddress) public onlyOwner() returns(bool res) {
             ppp = _PPPAddress;
             return true;
         }
@@ -232,7 +227,7 @@
 
         // @notice It will be called by owner to start the sale
         // TODO WARNING REMOVE _block parameter and _block variable in function
-        function start(uint _block) onlyBy(owner) {
+        function start(uint _block) onlyOwner() {
             startBlock = block.number;
             endBlock = startBlock + _block; //TODO: Replace 20 with 161280 for actual deployment
             // 4 weeks in blocks = 161280 (4 * 60 * 24 * 7 * 4)
@@ -268,7 +263,7 @@
 
         // @notice This function will finalize the sale.
         // It will only execute if predetermined sale time passed or all tokens are sold.
-        function finalize() onlyBy(owner) {
+        function finalize() onlyOwner() {
 
             //TODO uncomment this for live
             //uint daysToRefund = 4*60*24*15;
@@ -293,7 +288,7 @@
 
         // TODO do we want this here?
         // @notice Failsafe drain
-        function drain() onlyBy(owner) {
+        function drain() onlyOwner() {
             if (!owner.send(this.balance)) revert();
         }
 
