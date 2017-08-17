@@ -302,7 +302,6 @@ contract Presale is SafeMath, Pausable {
     // @notice Backers can claim tokens after public ICO is finished
     function claimTokens() stopInEmergency {
 
-
         if (currentStep != Step.Distributing)   // ensure that we are ready for this step
             revert();
 
@@ -310,16 +309,12 @@ contract Presale is SafeMath, Pausable {
             revert();
 
         Backer storage backer = backers[msg.sender];
-
         if (backer.refunded) revert();  // if refunded, don't allow for another refund
-
         if (backer.processed) revert(); // if tokens claimed, don't allow refunding
-
         if (backer.TokensToSend == 0)   // only continue if are any tokens to send
             revert();
 
         claimCount++;
-
         claimed[msg.sender] = backer.TokensToSend;  // save claimed tokens
         backer.processed = true;
 
@@ -340,10 +335,7 @@ contract Presale is SafeMath, Pausable {
 
         Backer storage backer = backers[msg.sender];
 
-        
-        if (backer.processed) revert();  // check if tokens have been allocated already
-
-        
+        if (backer.processed) revert();  // check if tokens have been allocated already        
         if (backer.refunded) revert();  // check if user has been already refunded
 
         backer.refunded = true; // mark contributor as refunded. 
