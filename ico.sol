@@ -159,7 +159,7 @@
         uint public minInvestETH; // Minimum amount to invest
         bool public crowdsaleClosed; // Is crowdsale still on going
 
-        uint public totalTokensSold;
+        
         uint public tokenPriceWei;
 
 
@@ -241,7 +241,7 @@
 
             if (msg.value < minInvestETH) revert(); // stop when required minimum is not sent
 
-            uint PPPToSend = safeDiv(msg.value, tokenPriceWei) * multiplier;
+            uint PPPToSend = safeDiv(safeMul(msg.value, multiplier), tokenPriceWei) ;
 
             // Ensure that max cap hasn't been reached
             if (safeAdd(PPPSentToETH, PPPToSend) > maxCap) revert();
