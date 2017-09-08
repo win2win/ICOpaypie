@@ -79,8 +79,8 @@ function retrieveData() {
 
     
 
-    $("#min-cap").html(formatNumber(minCap)+ " Eth");
-    $("#max-cap").html(formatNumber(maxCap)+ " Eth");
+    $("#min-cap").html(formatNumber(minCap));
+    $("#max-cap").html(formatNumber(maxCap));
     
 
 
