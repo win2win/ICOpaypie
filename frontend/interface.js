@@ -2,5 +2,6 @@ ICOABI =[ { "constant": true, "inputs": [], "name": "tokenPriceWei", "outputs": 
 
 
 var adminAddress = "0x6C88e6C76C1Eb3b130612D5686BE9c0A0C78925B";
-var connectionString = "http://localhost:8545"
+//var connectionString = "http://localhost:8545"
+var connectionString = "https://ropsten.infura.io"
 var contractAddress = "0x1BFd9565B40B5d93c3646Dfffc7B96fc8A349A47";
