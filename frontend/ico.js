@@ -63,7 +63,7 @@ function retrieveData() {
     var etherContributed = Number(ICOHandle.ETHReceived() / Math.pow(10, 18));
     var minCap = Number(ICOHandle.minCap()) / Math.pow(10, 10);
     var maxCap = Number(ICOHandle.maxCap()) / Math.pow(10, 10);
-    var tokensSold = ICOHandle.PPPSentToETH()/ Math.pow(10,10);
+    var tokensSold = ICOHandle.tokensSentToETH()/ Math.pow(10,10);
     var tokenCurrentPrice = ICOHandle.tokenPriceWei() / Math.pow(10, 18);
     var contractStopped = ICOHandle.stopped();
     var minInvestmentEther = ICOHandle.minInvestETH() / Math.pow(10, 18);
