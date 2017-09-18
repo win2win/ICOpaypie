@@ -117,7 +117,7 @@ contract Presale is SafeMath, Pausable {
     struct Backer {
         uint weiReceived; // amount of ETH contributed
         uint tokensToSend; // amount of tokens  sent
-        bool processed;
+        bool claimed;
         bool refunded;
     }
 
@@ -148,11 +148,13 @@ contract Presale is SafeMath, Pausable {
     uint multiplier = 10000000000; // to provide 10 decimal values
     mapping(address => Backer) public backers; //backer list
     address[] public backersIndex;
+    uint public maxCap;
     uint public claimCount;
     uint public refundCount;
     uint public totalClaimed;
     uint public totalRefunded;
     Step public currentStep;
+
 
 
     //enum Step{Unknown, Funding, Distributing, Refunding};
@@ -183,6 +185,7 @@ contract Presale is SafeMath, Pausable {
         owner = msg.sender;
         multisig = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
         minInvestETH = 1 ether;
+        maxCap = 50000000 * multiplier;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start       
         tokenPriceWei = 1100000000000000;
@@ -202,14 +205,14 @@ contract Presale is SafeMath, Pausable {
 
         if (backer.refunded) 
             revert();  // if refunded, don't allow for another refund
-        if (backer.processed) 
+        if (backer.claimed) 
             revert(); // if tokens claimed, don't allow refunding
         if (backer.tokensToSend == 0) 
             revert();  // only continue if are any tokens to send
             
 
         Backer storage backer = backers[_backer];
-        backer.processed = true;
+        backer.claimed = true;
 
         if (!token.transfer(_backer, backer.tokensToSend)) 
             revert(); // send claimed tokens to contributor account
@@ -259,6 +262,10 @@ contract Presale is SafeMath, Pausable {
             revert(); // stop when required minimum is not sent
 
         uint tokensToSend = calculateNoOfTokensToSend();
+
+         // Ensure that max cap hasn't been reached
+        if (safeAdd(tokensSent, tokensToSend) > maxCap) 
+            revert();
 
 
         Backer storage backer = backers[_backer];
@@ -327,14 +334,14 @@ contract Presale is SafeMath, Pausable {
         Backer storage backer = backers[msg.sender];
         if (backer.refunded) 
             revert();  // if refunded, don't allow for another refund
-        if (backer.processed) 
+        if (backer.claimed) 
             revert(); // if tokens claimed, don't allow refunding
         if (backer.tokensToSend == 0)   // only continue if are any tokens to send
             revert();
 
         claimCount++;
         claimed[msg.sender] = backer.tokensToSend;  // save claimed tokens
-        backer.processed = true;
+        backer.claimed = true;
 
         totalClaimed = safeAdd(totalClaimed, backer.tokensToSend);
         
@@ -354,7 +361,7 @@ contract Presale is SafeMath, Pausable {
 
         Backer storage backer = backers[msg.sender];
 
-        if (backer.processed) 
+        if (backer.claimed) 
             revert();  // check if tokens have been allocated already        
         if (backer.refunded) 
             revert();  // check if user has been already refunded
