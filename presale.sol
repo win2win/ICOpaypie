@@ -185,6 +185,7 @@ contract Presale is SafeMath, Pausable {
         owner = msg.sender;
         multisig = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
         minInvestETH = 1 ether;
+        //TODO add actual max cap
         maxCap = 50000000 * multiplier;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start       
