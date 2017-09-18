@@ -153,7 +153,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     address public multisigETH; // Multisig contract that will receive the ETH    
     address public team; // Address at which the team PPP will be sent   
     uint public tokensForTeam; // Tokens to be allocated to team if campaign succeeds
-    uint public ETHReceived; // Number of ETH received
+    uint public ethReceived; // Number of ETH received
     uint public tokensSent; // Number of PPP sent to ETH contributors
     uint public startBlock; // Crowdsale start block
     uint public endBlock; // Crowdsale end block
@@ -162,8 +162,8 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     uint public minInvestETH; // Minimum amount to invest
     bool public crowdsaleClosed; // Is crowdsale still on going
     Step public currentStep;  // to allow for controled steps of the campaign 
-    uint public refundCount;    
-    uint public totalRefunded;
+    uint public refundCount;  // number of refunds
+    uint public totalRefunded; // total amount of refunds
 
     
     uint public tokenPriceWei;
@@ -276,7 +276,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
             revert(); // Transfer PPP tokens
         backer.tokensSent = safeAdd(backer.tokensSent, tokensToSend);
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
-        ETHReceived = safeAdd(ETHReceived, msg.value); // Update the total Ether recived
+        ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived
         tokensSent = safeAdd(tokensSent, tokensToSend);
         backersIndex.push(_backer);
 

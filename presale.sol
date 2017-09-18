@@ -124,7 +124,7 @@ contract Presale is SafeMath, Pausable {
 
     address public owner; // Contract owner
     address public multisig; // Multisig contract that will receive the ETH    
-    uint public ETHReceived; // Number of ETH received
+    uint public ethReceived; // Number of ETH received
     uint public tokensSent; // Number of PPP sent to ETH contributors
     uint public startBlock; // Presale start block
     uint public endBlock; // Presale end block
@@ -268,7 +268,7 @@ contract Presale is SafeMath, Pausable {
 
         backer.tokensToSend = safeAdd(backer.tokensToSend, tokensToSend);
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
-        ETHReceived = safeAdd(ETHReceived, msg.value); // Update the total Ether recived
+        ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived
         tokensSent = safeAdd(tokensSent, tokensToSend);
 
 
