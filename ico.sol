@@ -144,7 +144,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     }
 
     Token public token; // Token contract reference   
-    address public multisigETH; // Multisig contract that will receive the ETH    
+    address public multisig; // Multisig contract that will receive the ETH    
     address public team; // Address at which the team PPP will be sent   
     uint public tokensForTeam; // Tokens to be allocated to team if campaign succeeds
     uint public ethReceived; // Number of ETH received
@@ -196,33 +196,32 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Crowdsale() {
 
-        multisigETH = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
+        multisig = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
         team = 0x027127930D9ae133C08AE480A6E6C2caf1e87861; //TODO: Replace address with correct one
         tokensForTeam = 27500000 * multiplier;  // tokens for the team
         //TODO: replace with amount of presale tokens
-        tokensSent = 6500000 * multiplier; // initilaize token number sold in presale
-        //TODO: Set this to 250 before deploying
+        tokensSent = 6500000 * multiplier; // initilaize token number sold in presale     
         minInvestETH = 1 ether;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start
         maxCap = 82500000 * multiplier; // reserve tokens for the team
         // Price is 0.0011 eth
-        tokenPriceWei = 1100000000000000;
-        minCap = (10500 ether / tokenPriceWei) * multiplier;
+        tokenPriceWei = 1100000000000000;    
+        minCap = (10500 ether * multiplier) / tokenPriceWei;
         currentStep = Step.Funding;
     }
 
     // @notice Specify address of token contract
     // @param _tokenAddress {address} address of PPP token contrac
     // @return res {bool}
-    function updateTokenAddress(Token _tokenAddress) public onlyOwner() returns(bool res) {
+    function updateTokenAddress(Token _tokenAddress) external onlyOwner() returns(bool res) {
         token = _tokenAddress;
         return true;
     }
 
     // @notice set the step of the campaign. 
     // @param _step {Step}
-    function setStep(Step _step) onlyOwner() {
+    function setStep(Step _step) external onlyOwner() {
         currentStep = _step;
     }
 
@@ -240,7 +239,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
     // @notice It will be called by owner to start the sale
     // TODO WARNING REMOVE _block parameter and _block variable in function
-    function start(uint _block) onlyOwner() {
+    function start(uint _block) external onlyOwner() {
         startBlock = block.number;
         endBlock = startBlock + _block; //TODO: Replace 20 with 161280 for actual deployment
         // 4 weeks in blocks = 161280 (4 * 60 * 24 * 7 * 4)
@@ -282,7 +281,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
     // @notice This function will finalize the sale.
     // It will only execute if predetermined sale time passed or all tokens are sold.
-    function finalize() onlyOwner() {
+    function finalize() external onlyOwner() {
 
         if (crowdsaleClosed)
             revert();
@@ -294,7 +293,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
             revert();
 
         if (tokensSent > minCap) {
-            if (!multisigETH.send(this.balance)) 
+            if (!multisig.send(this.balance)) 
                 revert();
             if (!token.transfer(team, token.balanceOf(this))) 
                 revert();
@@ -305,10 +304,10 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         
     }
 
-    // TODO do we want this here?
+   
     // @notice Failsafe drain
-    function drain() onlyOwner() {
-        if (!owner.send(this.balance)) 
+    function drain() external onlyOwner() {
+        if (!multisig.send(this.balance)) 
             revert();
     }
     
@@ -340,7 +339,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     }
 
     // @notice refund the backer
-    function refund() public returns (bool) {
+    function refund() external returns (bool) {
 
         if (currentStep != Step.Refunding)
         revert();
@@ -350,7 +349,6 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         if (!withdrawPayments())
             revert();
         return true;
-
     }
 }
 

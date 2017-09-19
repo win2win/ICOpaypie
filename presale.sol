@@ -196,7 +196,7 @@ contract Presale is SafeMath, Pausable {
 
     // @notice called to mark contributors when tokens are transfered to them after ICO manually. 
     // @param _backer {address} address of beneficiary
-    function claimTokensForUser(address _backer) onlyOwner() returns(bool) {
+    function claimTokensForUser(address _backer) onlyOwner() external returns(bool) {
 
         if (backer.refunded) 
             revert();  // if refunded, don't allow for another refund
@@ -226,7 +226,7 @@ contract Presale is SafeMath, Pausable {
 
     // @notice It will be called by owner to start the sale
     // TODO WARNING REMOVE _block parameter and _block variable in function
-    function start(uint _block) onlyOwner() {
+    function start(uint _block) external onlyOwner() {
         startBlock = block.number;
         endBlock = startBlock + _block; //TODO: Replace 20 with 161280 for actual deployment
         // 4 weeks in blocks = 161280 (4 * 60 * 24 * 7 * 4)
@@ -234,7 +234,7 @@ contract Presale is SafeMath, Pausable {
     }
 
 
-    function setStep(Step _step) onlyOwner() {
+    function setStep(Step _step) external onlyOwner() {
         currentStep = _step;
     }
 
@@ -282,8 +282,8 @@ contract Presale is SafeMath, Pausable {
     // @return tokensToPurchase {uint} value of tokens to purchase
 
     function calculateNoOfTokensToSend() constant internal returns(uint) {
-
-        uint tokenAmount = (msg.value * multiplier) / tokenPriceWei;
+         
+        uint tokenAmount = safeDiv(safeMul(msg.value, multiplier), tokenPriceWei);
         uint ethAmount = msg.value;
 
         if (ethAmount > 105 ether)
@@ -302,7 +302,7 @@ contract Presale is SafeMath, Pausable {
     // @notice This function will finalize the sale.
     // It will only execute if predetermined sale time passed 
 
-    function finalize() onlyOwner() {
+    function finalize() external onlyOwner() {
 
         if (presaleClosed)
             revert();
@@ -318,7 +318,7 @@ contract Presale is SafeMath, Pausable {
 
 
     // @notice Backers can claim tokens after public ICO is finished
-    function claimTokens() {
+    function claimTokens() external {
 
         if (currentStep != Step.Distributing)   // ensure that we are ready for this step
             revert();
@@ -349,7 +349,7 @@ contract Presale is SafeMath, Pausable {
 
     // @notice allow refund when ICO failed
     // the step will be set when main ICO finished 
-    function refund() {
+    function refund() external {
 
         if (currentStep != Step.Refunding)
             revert();
@@ -374,8 +374,8 @@ contract Presale is SafeMath, Pausable {
 
 
     // @notice Failsafe drain
-    function drain() onlyOwner() {
-        if (!owner.send(this.balance)) 
+    function drain() external onlyOwner() {
+        if (!multisig.send(this.balance)) 
             revert();
     }
 }
