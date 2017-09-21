@@ -196,8 +196,8 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Crowdsale() {
 
-        multisig = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
-        team = 0x027127930D9ae133C08AE480A6E6C2caf1e87861; //TODO: Replace address with correct one
+        multisig = 0x5738352c14205BB6300903c631C4a949D33FaDC1; 
+        team = 0x5738352c14205BB6300903c631C4a949D33FaDC1; 
         tokensForTeam = 27500000 * multiplier;  // tokens for the team
         //TODO: replace with amount of presale tokens
         tokensSent = 6500000 * multiplier; // initilaize token number sold in presale     
@@ -273,8 +273,15 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         tokensSent = safeAdd(tokensSent, tokensToSend);
         backersIndex.push(_backer);
 
+        multisig.transfer(this.balance);                
 
         ReceivedETH(_backer, msg.value, tokensToSend); // Register event
+        return true;
+    }
+
+    // @notice in case reunds are needed, money can be returned to the contract
+    function fundContract() payable onlyOwner() returns (bool) {
+
         return true;
     }
 

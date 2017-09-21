@@ -177,7 +177,7 @@ contract Presale is SafeMath, Pausable {
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Presale() {
         owner = msg.sender;
-        multisig = 0xAbA916F9EEe18F41FC32C80c8Be957f5E7efE481; //TODO: Replace address with correct one
+        multisig = 0x5738352c14205BB6300903c631C4a949D33FaDC1; //TODO: Replace address with correct one
         minInvestETH = 1 ether;
         //TODO add actual max cap
         maxCap = 50000000 * multiplier;
@@ -222,6 +222,12 @@ contract Presale is SafeMath, Pausable {
     // @notice It will call internal function which handels allocation of Ether and calculates PPP tokens.
     function () payable {
         contribute(msg.sender);
+    }
+
+    // @notice in case refunds are needed, money can be returned to the contract
+    function fundContract() payable onlyOwner() returns (bool) {
+
+        return true;
     }
 
     // @notice It will be called by owner to start the sale
@@ -273,6 +279,7 @@ contract Presale is SafeMath, Pausable {
         ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived
         tokensSent = safeAdd(tokensSent, tokensToSend);
 
+        multisig.transfer(this.balance);  // send money to multisignature wallet
 
         ReceivedETH(_backer, msg.value, tokensToSend); // Register event
         return true;
