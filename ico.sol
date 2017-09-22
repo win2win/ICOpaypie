@@ -128,7 +128,7 @@ contract PullPayment {
 }
 
 // Crowdsale Smart Contract
-// This smart contract collects ETH and in return sends PPP tokens to the Backers
+// This smart contract collects ETH and in return sends tokens to the Backers
 contract Crowdsale is SafeMath, Pausable, PullPayment {
 
     struct Backer {
@@ -139,22 +139,20 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
     Token public token; // Token contract reference   
     address public multisig; // Multisig contract that will receive the ETH    
-    address public team; // Address at which the team PPP will be sent   
+    address public team; // Address at which the team tokens will be sent   
     uint public tokensForTeam; // Tokens to be allocated to team if campaign succeeds
     uint public ethReceived; // Number of ETH received
-    uint public tokensSent; // Number of PPP sent to ETH contributors
+    uint public totalTokensSent; // Number of tokens sent to ETH contributors
     uint public startBlock; // Crowdsale start block
     uint public endBlock; // Crowdsale end block
-    uint public maxCap; // Maximum number of PPP to sell
-    uint public minCap; // Minimum number of ETH to raise
+    uint public maxCap; // Maximum number of tokens to sell
+    uint public minCap; // Minimum number of tokens to sell
     uint public minInvestETH; // Minimum amount to invest
     bool public crowdsaleClosed; // Is crowdsale still on going
     Step public currentStep;  // to allow for controled steps of the campaign 
     uint public refundCount;  // number of refunds
     uint public totalRefunded; // total amount of refunds
-
-
-    uint public tokenPriceWei;
+    uint public tokenPriceWei; // tokns price
 
     mapping(address => Backer) public backers; //backer list
     address[] public backersIndex; // to be able to itarate through backers for verification.  
@@ -169,11 +167,12 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     }
 
     modifier minCapNotReached() {
-        if (tokensSent >= minCap) 
+        if (totalTokensSent >= minCap) 
             revert();
         _;
     }
-
+    
+    // steps to check if valid
     enum Step {
         Unknown,
         Funding,  
@@ -188,17 +187,17 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Crowdsale() {
 
-        multisig = 0x5738352c14205BB6300903c631C4a949D33FaDC1; 
-        team = 0x5738352c14205BB6300903c631C4a949D33FaDC1; 
+        multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
+        team = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
         tokensForTeam = 27500000e18;  // tokens for the team
         //TODO: replace with amount of presale tokens
-        tokensSent = 0; // initilaize token number sold in presale            
+        totalTokensSent = 0; // initilaize token number sold in presale            
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start
         maxCap = 82500000e18; // reserve tokens for the team            
-        tokenPriceWei = 1100000000000000;    
-        minCap = 4500000e18;
-        currentStep = Step.Funding;
+        tokenPriceWei = 1100000000000000; // initialize price of token
+        minCap = 4500000e18;  // initilize min cap
+        currentStep = Step.Funding;  // initialize step to funding 
     }
 
 
@@ -255,9 +254,10 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
         uint tokensToSend = safeDiv(safeMul(msg.value, 1e18), tokenPriceWei); // ensure adding of decimal values before devision
 
-        // Ensure that max cap hasn't been reached
-        require (safeAdd(tokensSent, tokensToSend) <= maxCap);
         
+        totalTokensSent = safeAdd(totalTokensSent, tokensToSend);
+        // Ensure that max cap hasn't been reached
+        require (totalTokensSent <= maxCap);        
 
         Backer storage backer = backers[_backer];
 
@@ -265,8 +265,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
             revert(); // Transfer tokens
         backer.tokensSent = safeAdd(backer.tokensSent, tokensToSend);
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
-        ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived
-        tokensSent = safeAdd(tokensSent, tokensToSend);
+        ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived        
         backersIndex.push(_backer);
 
         multisig.transfer(this.balance);   // transfer funds to multisignature wallet             
@@ -282,23 +281,18 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // It will only execute if predetermined sale time passed or all tokens are sold.
     function finalize() external onlyOwner() {
 
-        if (crowdsaleClosed)
-            revert();
+        require(!crowdsaleClosed);        
+        // purchasing precise number of tokens might be impractical, thus subtract 100 tokens so finalizition is possible
+        // near the end 
+        require (block.number >= endBlock || totalTokensSent >= safeSub(maxCap, 100)); 
+        require(totalTokensSent >= minCap && block.number >= endBlock);                     
 
-        if (block.number < endBlock && tokensSent < maxCap) 
-            revert();
-
-        if (tokensSent < minCap && block.number > endBlock) 
-            revert();
-
-        if (tokensSent > minCap) {               
+        if (totalTokensSent > minCap) {               
             if (!token.transfer(team, token.balanceOf(this))) 
                 revert();
             token.unlock();
         }
-
-        crowdsaleClosed = true;
-        
+        crowdsaleClosed = true;        
     }
 
 

@@ -174,7 +174,7 @@ contract Presale is SafeMath, Pausable {
     // Presale  {constructor}
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Presale() {        
-        multisig = 0x5738352c14205BB6300903c631C4a949D33FaDC1; 
+        multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
         minInvestETH = 1 ether;  
         maxInvestment = 200 ether;      
         maxCap = 82500000e18;
