@@ -108,8 +108,7 @@ contract PullPayment {
     // Store sent amount as credit to be pulled, called by payer
     function asyncSend(address dest, uint amount) internal {
         payments[dest] += amount;
-    }
-    // TODO: check
+    }    
     // Withdraw accumulated balance, called by payee
     function withdrawPayments() internal returns (bool) {
         address payee = msg.sender;
@@ -229,19 +228,18 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     }
 
     // {fallback function}
-    // @notice It will call internal function which handels allocation of Ether and calculates PPP tokens.
+    // @notice It will call internal function which handels allocation of Ether and calculates amout of tokens.
     function () payable {           
         contribute(msg.sender);
     }
 
-    // @notice It will be called by owner to start the sale
-    // TODO WARNING REMOVE _block parameter and _block variable in function
+    // @notice It will be called by owner to start the sale    
     function start(uint _block) external onlyOwner() {
         startBlock = block.number;
         endBlock = startBlock + _block; 
     }
 
-        // @notice Due to changing average of block time
+    // @notice Due to changing average of block time
     // this function will allow on adjusting duration of campaign closer to the end 
     function adjustDuration(uint _block) external onlyOwner() {
 
@@ -271,7 +269,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         tokensSent = safeAdd(tokensSent, tokensToSend);
         backersIndex.push(_backer);
 
-        multisig.transfer(this.balance);                
+        multisig.transfer(this.balance);   // transfer funds to multisignature wallet             
 
         ReceivedETH(_backer, msg.value, tokensToSend); // Register event
         return true;
@@ -387,10 +385,11 @@ contract Token is ERC20, SafeMath, Ownable {
         crowdSaleAddress = _crowdSaleAddress;
         preSaleAddress = _presaleAddress;
 
-        // TODO: make sure the address in here and the presale amounts are accurate
+       
         // Address to hold tokens for pre-sale customers
         balances[_presaleAddress] = tokensSold;
 
+        // Address to hold tokens for public sale customers
         balances[crowdSaleAddress] = totalSupply - balances[_presaleAddress];
     }
 
@@ -416,8 +415,7 @@ contract Token is ERC20, SafeMath, Ownable {
         return true;
     }
 
-
-    /* A contract attempts to get the coins */
+    
     function transferFrom(address _from, address _to, uint256 _value) returns(bool success) {
         require (balances[_from] >= _value); // Check if the sender has enough                            
         require (_value <= allowed[_from][msg.sender]); // Check if allowed is greater or equal        
