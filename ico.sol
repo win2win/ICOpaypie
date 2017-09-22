@@ -115,13 +115,8 @@ contract PullPayment {
         address payee = msg.sender;
         uint payment = payments[payee];
 
-        if (payment == 0) {
-            revert();
-        }
-
-        if (this.balance < payment) {
-            revert();
-        }
+        require (payment != 0);
+        require (this.balance >= payment);
 
         payments[payee] = 0;
 
@@ -159,11 +154,9 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     uint public refundCount;  // number of refunds
     uint public totalRefunded; // total amount of refunds
 
-    
+
     uint public tokenPriceWei;
 
-
-    uint multiplier = 10000000000; // to provide 10 decimal values
     mapping(address => Backer) public backers; //backer list
     address[] public backersIndex; // to be able to itarate through backers for verification.  
 
@@ -198,21 +191,25 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
         multisig = 0x5738352c14205BB6300903c631C4a949D33FaDC1; 
         team = 0x5738352c14205BB6300903c631C4a949D33FaDC1; 
-        tokensForTeam = 27500000 * multiplier;  // tokens for the team
+        tokensForTeam = 27500000e18;  // tokens for the team
         //TODO: replace with amount of presale tokens
-        tokensSent = 6500000 * multiplier; // initilaize token number sold in presale     
-        minInvestETH = 1 ether;
+        tokensSent = 0; // initilaize token number sold in presale            
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start
-        maxCap = 82500000 * multiplier; // reserve tokens for the team
-        // Price is 0.0011 eth
+        maxCap = 82500000e18; // reserve tokens for the team            
         tokenPriceWei = 1100000000000000;    
-        minCap = (10500 ether * multiplier) / tokenPriceWei;
+        minCap = 4500000e18;
         currentStep = Step.Funding;
     }
 
+
+    // @notice in case refunds are needed, money can be returned to the contract
+    function fundContract() payable onlyOwner() returns (bool) {
+
+    return true;
+    }
     // @notice Specify address of token contract
-    // @param _tokenAddress {address} address of PPP token contrac
+    // @param _tokenAddress {address} address of the token contract
     // @return res {bool}
     function updateTokenAddress(Token _tokenAddress) external onlyOwner() returns(bool res) {
         token = _tokenAddress;
@@ -241,9 +238,14 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // TODO WARNING REMOVE _block parameter and _block variable in function
     function start(uint _block) external onlyOwner() {
         startBlock = block.number;
-        endBlock = startBlock + _block; //TODO: Replace 20 with 161280 for actual deployment
-        // 4 weeks in blocks = 161280 (4 * 60 * 24 * 7 * 4)
-        // enable this for live assuming each bloc takes 15 sec .
+        endBlock = startBlock + _block; 
+    }
+
+        // @notice Due to changing average of block time
+    // this function will allow on adjusting duration of campaign closer to the end 
+    function adjustDuration(uint _block) external onlyOwner() {
+
+        endBlock = startBlock + _block;  
     }
 
     // @notice It will be called by fallback function whenever ether is sent to it
@@ -251,22 +253,18 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // @return res {bool} true if transaction was successful
     function contribute(address _backer) internal stopInEmergency respectTimeFrame returns(bool res) {
 
-        if (currentStep != Step.Funding)
-        revert();
+        require (currentStep == Step.Funding);
 
-        if (msg.value < minInvestETH) 
-            revert(); // stop when required minimum is not sent
-
-        uint tokensToSend = safeDiv(safeMul(msg.value, multiplier), tokenPriceWei);
+        uint tokensToSend = safeDiv(safeMul(msg.value, 1e18), tokenPriceWei); // ensure adding of decimal values before devision
 
         // Ensure that max cap hasn't been reached
-        if (safeAdd(tokensSent, tokensToSend) > maxCap) 
-            revert();
+        require (safeAdd(tokensSent, tokensToSend) <= maxCap);
+        
 
         Backer storage backer = backers[_backer];
 
         if (!token.transfer(_backer, tokensToSend)) 
-            revert(); // Transfer PPP tokens
+            revert(); // Transfer tokens
         backer.tokensSent = safeAdd(backer.tokensSent, tokensToSend);
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
         ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived
@@ -279,11 +277,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         return true;
     }
 
-    // @notice in case reunds are needed, money can be returned to the contract
-    function fundContract() payable onlyOwner() returns (bool) {
 
-        return true;
-    }
 
 
     // @notice This function will finalize the sale.
@@ -299,9 +293,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         if (tokensSent < minCap && block.number > endBlock) 
             revert();
 
-        if (tokensSent > minCap) {
-            if (!multisig.send(this.balance)) 
-                revert();
+        if (tokensSent > minCap) {               
             if (!token.transfer(team, token.balanceOf(this))) 
                 revert();
             token.unlock();
@@ -311,26 +303,23 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         
     }
 
-   
+
     // @notice Failsafe drain
     function drain() external onlyOwner() {
         if (!multisig.send(this.balance)) 
             revert();
     }
-    
-    
+
+
     // @notice Prepare refund of the backer if minimum is not reached
     // burn the tokens
     function prepareRefund()  minCapNotReached internal returns (bool) {
 
-
         Backer storage backer = backers[msg.sender];
 
-        if (backer.refunded ) 
-            revert();        
+        require (!backer.refunded);               
+        require (backer.tokensSent != 0); 
 
-        if (backer.tokensSent == 0) 
-            revert();           
         if (!token.burn(msg.sender, backer.tokensSent)) 
             revert();
 
@@ -348,8 +337,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     // @notice refund the backer
     function refund() external returns (bool) {
 
-        if (currentStep != Step.Refunding)
-        revert();
+        require (currentStep == Step.Refunding);
 
         if (!prepareRefund()) 
             revert();
@@ -359,98 +347,99 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     }
 }
 
-    // The PPP token
-    contract Token is ERC20, SafeMath, Ownable {
-        // Public variables of the token
-        string public name;
-        string public symbol;
-        uint8 public decimals; // How many decimals to show.
-        string public version = "v0.1";
-        uint public initialSupply;
-        uint public totalSupply;
-        bool public locked;
-        address public crowdSaleAddress;
-        address public preSaleAddress;
-        uint multiplier = 10000000000;
+// The PPP token
+contract Token is ERC20, SafeMath, Ownable {
+    // Public variables of the token
+    string public name;
+    string public symbol;
+    uint8 public decimals; // How many decimals to show.
+    string public version = "v0.1";
+    uint public initialSupply;
+    uint public totalSupply;
+    bool public locked;
+    address public crowdSaleAddress;
+    address public preSaleAddress;       
+    mapping(address => uint) balances;
+    mapping(address => mapping(address => uint)) allowed;
 
-        mapping(address => uint) balances;
-        mapping(address => mapping(address => uint)) allowed;
-
-        // Lock transfer for contributors during the ICO 
-        modifier onlyUnlocked() {
-            if (msg.sender != crowdSaleAddress && msg.sender != preSaleAddress && locked) 
-                revert();
-            _;
-        }
-
-        modifier onlyAuthorized() {
-            if (msg.sender != owner && msg.sender != crowdSaleAddress ) 
-                revert();
-            _;
-        }
-
-        // The PPP Token created with the time at which the crowdsale ends
-        function Token(address _crowdSaleAddress, address _presaleAddress, uint tokensSold) {
-            // Lock the transfCrowdsaleer function during the crowdsale
-            locked = true;
-            initialSupply = 110000000 * multiplier;
-            totalSupply = initialSupply;
-            name = "PPP PayPie"; // Set the name for display purposes
-            symbol = "PPP"; // Set the symbol for display purposes
-            decimals = 10; // Amount of decimals for display purposes
-            crowdSaleAddress = _crowdSaleAddress;
-            preSaleAddress = _presaleAddress;
-
-            // TODO: make sure the address in here and the presale amounts are accurate
-            // Address to hold tokens for pre-sale customers
-            balances[_presaleAddress] = tokensSold;
-
-            balances[crowdSaleAddress] = totalSupply - balances[_presaleAddress];
-        }
-
-        function unlock() onlyAuthorized {
-            locked = false;
-        }
-
-        function burn( address _member, uint256 _value) onlyAuthorized returns(bool) {
-            balances[_member] = safeSub(balances[_member], _value);
-            totalSupply = safeSub(totalSupply, _value);
-            Transfer(_member, 0x0, _value);
-            return true;
-        }
-
-        function transfer(address _to, uint _value) onlyUnlocked returns(bool) {
-            balances[msg.sender] = safeSub(balances[msg.sender], _value);
-            balances[_to] = safeAdd(balances[_to], _value);
-            Transfer(msg.sender, _to, _value);
-            return true;
-        }
-
-        /* A contract attempts to get the coins */
-        function transferFrom(address _from, address _to, uint256 _value) returns(bool success) {
-            if (balances[_from] < _value) 
-                revert(); // Check if the sender has enough            
-            if (_value > allowed[_from][msg.sender]) 
-                revert(); // Check allowance
-            balances[_from] = safeSub(balances[_from], _value); // Subtract from the sender
-            balances[_to] = safeAdd(balances[_to], _value); // Add the same to the recipient
-            allowed[_from][msg.sender] = safeSub(allowed[_from][msg.sender], _value);
-            Transfer(_from, _to, _value);
-            return true;
-        }
-
-        function balanceOf(address _owner) constant returns(uint balance) {
-            return balances[_owner];
-        }
-
-        function approve(address _spender, uint _value) returns(bool) {
-            allowed[msg.sender][_spender] = _value;
-            Approval(msg.sender, _spender, _value);
-            return true;
-        }
-
-
-        function allowance(address _owner, address _spender) constant returns(uint remaining) {
-            return allowed[_owner][_spender];
-        }
+    // Lock transfer for contributors during the ICO 
+    modifier onlyUnlocked() {
+        if (msg.sender != crowdSaleAddress && msg.sender != preSaleAddress && locked) 
+            revert();
+        _;
     }
+
+    modifier onlyAuthorized() {
+        if (msg.sender != owner && msg.sender != crowdSaleAddress ) 
+            revert();
+        _;
+    }
+
+    // The PPP Token created with the time at which the crowdsale ends
+    function Token(address _crowdSaleAddress, address _presaleAddress, uint tokensSold) {
+        // Lock the transfCrowdsaleer function during the crowdsale
+        locked = true;
+        initialSupply = 165000000e18;
+        totalSupply = initialSupply;
+        name = "PayPie"; // Set the name for display purposes
+        symbol = "PPP"; // Set the symbol for display purposes
+        decimals = 18; // Amount of decimals for display purposes
+        crowdSaleAddress = _crowdSaleAddress;
+        preSaleAddress = _presaleAddress;
+
+        // TODO: make sure the address in here and the presale amounts are accurate
+        // Address to hold tokens for pre-sale customers
+        balances[_presaleAddress] = tokensSold;
+
+        balances[crowdSaleAddress] = totalSupply - balances[_presaleAddress];
+    }
+
+    function unlock() onlyAuthorized {
+        locked = false;
+    }
+
+    function lock() onlyAuthorized {
+        locked = true;
+    }
+
+    function burn( address _member, uint256 _value) onlyAuthorized returns(bool) {
+        balances[_member] = safeSub(balances[_member], _value);
+        totalSupply = safeSub(totalSupply, _value);
+        Transfer(_member, 0x0, _value);
+        return true;
+    }
+
+    function transfer(address _to, uint _value) onlyUnlocked returns(bool) {
+        balances[msg.sender] = safeSub(balances[msg.sender], _value);
+        balances[_to] = safeAdd(balances[_to], _value);
+        Transfer(msg.sender, _to, _value);
+        return true;
+    }
+
+
+    /* A contract attempts to get the coins */
+    function transferFrom(address _from, address _to, uint256 _value) returns(bool success) {
+        require (balances[_from] >= _value); // Check if the sender has enough                            
+        require (_value <= allowed[_from][msg.sender]); // Check if allowed is greater or equal        
+        balances[_from] = safeSub(balances[_from], _value); // Subtract from the sender
+        balances[_to] = safeAdd(balances[_to],_value); // Add the same to the recipient
+        allowed[_from][msg.sender] = safeSub(allowed[_from][msg.sender],_value);
+        Transfer(_from, _to, _value);
+        return true;
+    }
+
+    function balanceOf(address _owner) constant returns(uint balance) {
+        return balances[_owner];
+    }
+
+    function approve(address _spender, uint _value) returns(bool) {
+        allowed[msg.sender][_spender] = _value;
+        Approval(msg.sender, _spender, _value);
+        return true;
+    }
+
+
+    function allowance(address _owner, address _spender) constant returns(uint remaining) {
+        return allowed[_owner][_spender];
+    }
+}
