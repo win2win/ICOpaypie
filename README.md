@@ -25,7 +25,7 @@
 * in case of refunds or claiming tokens in presale contract, admin needs to set the appropriate steps through setStep() fucntion
 according to this definitiaon in presale
 
-    enum Step {
+        enum Step {
         Unknown,
         Funding,
         Distributing,
