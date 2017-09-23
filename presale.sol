@@ -279,7 +279,7 @@ contract Presale is SafeMath, Pausable {
         ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived
         tokensSent = safeAdd(tokensSent, tokensToSend);
 
-        multisig.transfer(this.balance);  // send money to multisignature wallet
+        multisig.transfer(msg.value);  // send money to multisignature wallet
 
         ReceivedETH(_contributor, msg.value, tokensToSend); // Register event
         return true;

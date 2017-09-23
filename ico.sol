@@ -203,9 +203,10 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
 
     // @notice in case refunds are needed, money can be returned to the contract
     function fundContract() payable onlyOwner() returns (bool) {
-
-    return true;
+        return true;
     }
+
+
     // @notice Specify address of token contract
     // @param _tokenAddress {address} address of the token contract
     // @return res {bool}
@@ -268,7 +269,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived        
         backersIndex.push(_backer);
 
-        multisig.transfer(this.balance);   // transfer funds to multisignature wallet             
+        multisig.transfer(msg.value);   // transfer funds to multisignature wallet             
 
         ReceivedETH(_backer, msg.value, tokensToSend); // Register event
         return true;
