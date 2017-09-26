@@ -105,7 +105,7 @@ contract Token is ERC20, SafeMath, Ownable {
 }
 
 // Presale Smart Contract
-// This smart contract collects ETH and in return sends PPP tokens to the backers
+// This smart contract collects ETH and in return sends tokens to the backers
 contract Presale is SafeMath, Pausable {
 
     struct Backer {
@@ -117,11 +117,11 @@ contract Presale is SafeMath, Pausable {
    
     address public multisig; // Multisig contract that will receive the ETH    
     uint public ethReceived; // Number of ETH received
-    uint public tokensSent; // Number of PPP sent to ETH contributors
+    uint public tokensSent; // Number of tokens sent to ETH contributors
     uint public startBlock; // Presale start block
     uint public endBlock; // Presale end block
 
-    uint public minInvestETH; // Minimum amount to invest
+    uint public minInvestment; // Minimum amount to invest
     uint public maxInvestment; // Maximum investment
     bool public presaleClosed; // Is presale still on going
     //enum Step{Unknown, Funding, Distributing, Refunding};
@@ -175,7 +175,7 @@ contract Presale is SafeMath, Pausable {
     // @notice fired when contract is crated. Initilizes all constnat variables.
     function Presale() {        
         multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
-        minInvestETH = 1 ether;  
+        minInvestment = 1 ether;  
         maxInvestment = 200 ether;      
         maxCap = 82500000e18;
         startBlock = 0; // Should wait for the call of the function start
@@ -190,6 +190,13 @@ contract Presale is SafeMath, Pausable {
         return backersIndex.length;
     }
 
+    // @notice to populate website with status of the sale 
+    function returnWebsiteData()constant returns(uint, uint, uint, uint, uint, uint, uint, uint, uint, bool, bool) {
+    
+        return (startBlock, endBlock, numberOfBackers(), ethReceived, maxCap, tokensSent, tokenPriceWei, minInvestment, maxInvestment, stopped, presaleClosed );
+
+
+    }
 
     // @notice called to mark contributors when tokens are transfered to them after ICO manually. 
     // @param _backer {address} address of beneficiary
@@ -261,7 +268,7 @@ contract Presale is SafeMath, Pausable {
     function contribute(address _contributor) internal stopInEmergency respectTimeFrame returns(bool res) {
 
         require (currentStep == Step.Funding); // ensure that we are in funding step   
-        require (msg.value >= minInvestETH && msg.value <= maxInvestment);   // ensure that min and max contributions amount is met
+        require (msg.value >= minInvestment && msg.value <= maxInvestment);   // ensure that min and max contributions amount is met
                    
         uint tokensToSend = calculateNoOfTokensToSend();
 

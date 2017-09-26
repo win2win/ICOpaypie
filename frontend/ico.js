@@ -41,33 +41,42 @@ function retrieveData() {
   
 
     var ICOContradct = web3.eth.contract(ICOABI);
-    var ICOHandle = ICOContradct.at(contractAddress);
+    var ICOHandle = ICOContradct.at(contractAddrsesICO);
 
-    var durationInBlocks =  ICOHandle.endBlock() - ICOHandle.startBlock();
+
+    var websiteData =  ICOHandle.returnWebsiteData();
+    var endBlock = websiteData[1];
+    var startBlock =  websiteData[0];
+
+    var durationInBlocks =  endBlock - startBlock;
 
     // assumption is that 2.5 blocks will be created in one minute on averge
     var durationMinutes = Math.round(durationInBlocks / 2.5); 
-    var startingTimeStamp = web3.eth.getBlock(ICOHandle.startBlock()).timestamp;
+    var startingTimeStamp = web3.eth.getBlock(Number(startBlock)).timestamp;
     var startDate = convertTimestamp(startingTimeStamp, false);
     var startDateObject = new Date(startDate);
 
     // add duration of campaign in minutes to determine the date of campaign end. 
     startDateObject.setMinutes (startDateObject.getMinutes() + durationMinutes);
-
-    
     
    
-    var numberOfContributors = Number(ICOHandle.numberOfBackers());
-    var startingBlock = Number(ICOHandle.startBlock());
+    var numberOfContributors = websiteData[2];    
+    var ethReceived = websiteData[3];
+    var maxCap = websiteData[4];
+    var minCap = websiteData[5];
+    var tokensSold = websiteData[6];
+    var tokenPriceWei = websiteData[7];    
+    var contractStopped = websiteData[8]? "Yes":"No";
+    var presaleClosed = websiteData[9]? "Yes":"No";
     
-    var etherContributed = Number(ICOHandle.ETHReceived() / Math.pow(10, 18));
-    var minCap = Number(ICOHandle.minCap()) / Math.pow(10, 10);
-    var maxCap = Number(ICOHandle.maxCap()) / Math.pow(10, 10);
-    var tokensSold = ICOHandle.tokensSentToETH()/ Math.pow(10,10);
-    var tokenCurrentPrice = ICOHandle.tokenPriceWei() / Math.pow(10, 18);
-    var contractStopped = ICOHandle.stopped();
-    var minInvestmentEther = ICOHandle.minInvestETH() / Math.pow(10, 18);
-    var tokensContractAddress = ICOHandle.ppp();
+    var etherContributed = Number(ethReceived/ Math.pow(10, 18));    
+    var tokensSold = tokensSold/ Math.pow(10,18);
+    var tokenCurrentPrice = tokenPriceWei / Math.pow(10, 18);
+    maxCap = Number(maxCap) / Math.pow(10, 18);
+    minCap = Number(minCap) / Math.pow(10,18);
+   
+    
+  
 
 
     $("#number-participants").html(formatNumber(numberOfContributors));
@@ -76,11 +85,16 @@ function retrieveData() {
     $("#ether-raised").html(formatNumber(etherContributed) + " Eth");
     $("#tokens-sold").html(formatNumber(tokensSold) );
     $("#token-price").html(tokenCurrentPrice + " Eth");
+    $("#min-investment").html("N/A");
+    $("#max-investment").html("N/A");
+
+    $("#contract-stoppped").html(contractStopped );
+    $("#presale-closed").html(presaleClosed );
 
     
 
-    $("#min-cap").html(formatNumber(minCap));
-    $("#max-cap").html(formatNumber(maxCap));
+    $("#min-cap").html(formatNumber(minCap) + " Eth");
+    $("#max-cap").html(formatNumber(maxCap) + " Eth");
     
 
 
@@ -137,14 +151,6 @@ function formatNumber(number) {
     }
     return x1 + x2;
 }
-
-
-
-
-
-
-
-
 
 
 
