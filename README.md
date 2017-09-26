@@ -13,7 +13,7 @@
 
 ### How do I get set up? 
 
-* Use truffle or Ethereum Wallet to deploy contract on Ethereum network
+* Use truffle, remix or  Ethereum Wallet to deploy contract on Ethereum network
 
 
 ### How do I run
@@ -39,5 +39,7 @@ according to this definitiaon in presale
         Funding,  
         Refunding
     }
-* in case of failed campaign contributors can safly withdraw their funds by calling receiveApproval() function and withdrawPayments()
+* in case of failed campaign contributors can safly withdraw their funds by calling refund() function. 
+* in presale contributors will need to claim their tokens after ICO. To claim tokens one needs to call function claimTokens()
+and flag "Distributing" has to be set as a step in campaig.
 
