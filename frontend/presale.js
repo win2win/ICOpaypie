@@ -38,78 +38,86 @@ function retrieveData() {
 
     var blockEnd, startDate, endDate, tokenPrice;
 
-  
+
 
     var ICOContradct = web3.eth.contract(preselIBI);
     var ICOHandle = ICOContradct.at(contractAddressPresale);
 
 
-    var websiteData =  ICOHandle.returnWebsiteData();
-    var endBlock = websiteData[1];
-    var startBlock =  websiteData[0];
+    ICOHandle.returnWebsiteData(function (error, websiteData) {
 
-    var durationInBlocks =  endBlock - startBlock;
+        var endBlock = websiteData[1];
+        var startBlock = websiteData[0];
 
-    // assumption is that 2.5 blocks will be created in one minute on averge
-    var durationMinutes = Math.round(durationInBlocks / 2.5); 
-    var startingTimeStamp = web3.eth.getBlock(Number(startBlock)).timestamp;
-    var startDate = convertTimestamp(startingTimeStamp, false);
-    var startDateObject = new Date(startDate);
+        var durationInBlocks = endBlock - startBlock;
 
-    // add duration of campaign in minutes to determine the date of campaign end. 
-    startDateObject.setMinutes (startDateObject.getMinutes() + durationMinutes);
-    
-   
-    var numberOfContributors = websiteData[2];    
-    var ethReceived = websiteData[3];
-    var maxCap = websiteData[4];
-    var tokensSold = websiteData[5];
-    var tokenPriceWei = websiteData[6];
-    var minInvestment = websiteData[7];
-    var maxInvestment = websiteData[8];
-    var contractStopped = websiteData[9]? "Yes":"No";
-    var presaleClosed = websiteData[10]? "Yes":"No";
-    
-    var etherContributed = Number(ethReceived/ Math.pow(10, 18));    
-    var maxCap = Number(maxCap) / Math.pow(10, 18);
-    var tokensSold = tokensSold/ Math.pow(10,18);
-    var tokenCurrentPrice = tokenPriceWei / Math.pow(10, 18);
-    var minInvestment = minInvestment / Math.pow(10, 18);
-    var maxInvestment = maxInvestment / Math.pow(10, 18);
-    
-  
+        // assumption is that 2.5 blocks will be created in one minute on averge
+        var durationMinutes = Math.round(durationInBlocks / 2.5);
 
 
-    $("#number-participants").html(formatNumber(numberOfContributors));
-    $("#ico-start").html(new Date(convertTimestamp(startingTimeStamp,false)));
-    $("#ico-end").html(startDateObject);
-    $("#ether-raised").html(formatNumber(etherContributed) + " Eth");
-    $("#tokens-sold").html(formatNumber(tokensSold) );
-    $("#token-price").html(tokenCurrentPrice + " Eth");
-    $("#min-investment").html(minInvestment + " Eth");
-    $("#max-investment").html(maxInvestment + " Eth");
+        web3.eth.getBlock(Number(startBlock), function (error, res) {
 
-    $("#contract-stoppped").html(contractStopped );
-    $("#presale-closed").html(presaleClosed );
+            var startingTimeStamp = res.timestamp;
 
-    
+            var startDate = convertTimestamp(startingTimeStamp, false);
+            var startDateObject = new Date(startDate);
 
-    $("#min-cap").html("N/A");
-    $("#max-cap").html(formatNumber(maxCap) + " Eth");
-    
+            // add duration of campaign in minutes to determine the date of campaign end. 
+            startDateObject.setMinutes(startDateObject.getMinutes() + durationMinutes);
+
+
+            var numberOfContributors = websiteData[2];
+            var ethReceived = websiteData[3];
+            var maxCap = websiteData[4];
+            var tokensSold = websiteData[5];
+            var tokenPriceWei = websiteData[6];
+            var minInvestment = websiteData[7];
+            var maxInvestment = websiteData[8];
+            var contractStopped = websiteData[9] ? "Yes" : "No";
+            var presaleClosed = websiteData[10] ? "Yes" : "No";
+
+            var etherContributed = Number(ethReceived / Math.pow(10, 18));
+            var maxCap = Number(maxCap) / Math.pow(10, 18);
+            var tokensSold = tokensSold / Math.pow(10, 18);
+            var tokenCurrentPrice = tokenPriceWei / Math.pow(10, 18);
+            var minInvestment = minInvestment / Math.pow(10, 18);
+            var maxInvestment = maxInvestment / Math.pow(10, 18);
+
+
+
+
+            $("#number-participants").html(formatNumber(numberOfContributors));
+            $("#ico-start").html(new Date(convertTimestamp(startingTimeStamp, false)));
+            $("#ico-end").html(startDateObject);
+            $("#ether-raised").html(formatNumber(etherContributed) + " Eth");
+            $("#tokens-sold").html(formatNumber(tokensSold));
+            $("#token-price").html(tokenCurrentPrice + " Eth");
+            $("#min-investment").html(minInvestment + " Eth");
+            $("#max-investment").html(maxInvestment + " Eth");
+
+            $("#contract-stoppped").html(contractStopped);
+            $("#presale-closed").html(presaleClosed);
+
+
+
+            $("#min-cap").html("N/A");
+            $("#max-cap").html(formatNumber(maxCap) + " Eth");
+        })
+    });
+
 
 
     //  }, 10);
 }
 
 function convertTimestamp(timestamp, onlyDate) {
-    var d = new Date(timestamp * 1000),	// Convert the passed timestamp to milliseconds
+    var d = new Date(timestamp * 1000), // Convert the passed timestamp to milliseconds
         yyyy = d.getFullYear(),
-        mm = ('0' + (d.getMonth() + 1)).slice(-2),	// Months are zero based. Add leading 0.
-        dd = ('0' + d.getDate()).slice(-2),			// Add leading 0.
+        mm = ('0' + (d.getMonth() + 1)).slice(-2), // Months are zero based. Add leading 0.
+        dd = ('0' + d.getDate()).slice(-2), // Add leading 0.
         hh = d.getHours(),
         h = hh,
-        min = ('0' + d.getMinutes()).slice(-2),		// Add leading 0.
+        min = ('0' + d.getMinutes()).slice(-2), // Add leading 0.
         sec = d.getSeconds(),
         ampm = 'AM',
         time;
@@ -130,8 +138,7 @@ function convertTimestamp(timestamp, onlyDate) {
     if (onlyDate) {
         time = mm + '/' + dd + '/' + yyyy;
 
-    }
-    else {
+    } else {
         // ie: 2013-02-18, 8:35 AM	
         time = yyyy + '-' + mm + '-' + dd + ', ' + h + ':' + min + ' ' + ampm;
         time = mm + '/' + dd + '/' + yyyy + '  ' + h + ':' + min + ':' + sec + ' ' + ampm;
@@ -152,14 +159,3 @@ function formatNumber(number) {
     }
     return x1 + x2;
 }
-
-
-
-
-
-
-
-
-
-
-
