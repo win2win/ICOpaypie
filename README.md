@@ -13,7 +13,7 @@
 
 ### How do I get set up? 
 
-* Use truffle, remix or  Ethereum Wallet to deploy contract on Ethereum network
+* Use truffle, remix or      Ethereum Wallet to deploy contract on Ethereum network
 
 
 ### How do I run

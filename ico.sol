@@ -146,8 +146,7 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
     uint public startBlock; // Crowdsale start block
     uint public endBlock; // Crowdsale end block
     uint public maxCap; // Maximum number of tokens to sell
-    uint public minCap; // Minimum number of tokens to sell
-    uint public minInvestETH; // Minimum amount to invest
+    uint public minCap; // Minimum number of tokens to sell    
     bool public crowdsaleClosed; // Is crowdsale still on going
     Step public currentStep;  // to allow for controled steps of the campaign 
     uint public refundCount;  // number of refunds
@@ -200,6 +199,12 @@ contract Crowdsale is SafeMath, Pausable, PullPayment {
         currentStep = Step.Funding;  // initialize step to funding 
     }
 
+
+     // @notice to populate website with status of the sale 
+    function returnWebsiteData()constant returns(uint, uint, uint, uint, uint, uint, uint, uint, bool, bool) {
+    
+        return (startBlock, endBlock, numberOfBackers(), ethReceived, maxCap, minCap totalTokensSent,  tokenPriceWei, stopped, crowdsaleClosed);
+    }
 
     // @notice in case refunds are needed, money can be returned to the contract
     function fundContract() payable onlyOwner() returns (bool) {
