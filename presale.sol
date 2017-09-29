@@ -1,25 +1,18 @@
-pragma solidity ^ 0.4.11;
+pragma solidity ^ 0.4.17;
 
 contract SafeMath {
-    function safeMul(uint a, uint b) internal returns(uint) {
+    function safeMul(uint a, uint b) pure internal returns(uint) {
         uint c = a * b;
         assert(a == 0 || c / a == b);
         return c;
     }
 
-    function safeDiv(uint a, uint b) internal returns(uint) {
-        assert(b > 0);
-        uint c = a / b;
-        assert(a == b * c + a % b);
-        return c;
-    }
-
-    function safeSub(uint a, uint b) internal returns(uint) {
+    function safeSub(uint a, uint b) pure internal returns(uint) {
         assert(b <= a);
         return a - b;
     }
 
-    function safeAdd(uint a, uint b) internal returns(uint) {
+    function safeAdd(uint a, uint b) pure internal returns(uint) {
         uint c = a + b;
         assert(c >= a && c >= b);
         return c;
@@ -32,16 +25,16 @@ contract SafeMath {
 contract Ownable {
     address public owner;
 
-    function Ownable() {
+    function Ownable() public {
         owner = msg.sender;
     }
 
-    function transferOwnership(address newOwner) onlyOwner {
+    function transferOwnership(address newOwner) public onlyOwner {
         if (newOwner != address(0)) 
             owner = newOwner;
     }
 
-    function kill() {
+    function kill() public {
         if (msg.sender == owner) 
             selfdestruct(owner);
     }
@@ -84,15 +77,15 @@ contract Pausable is Ownable {
 contract ERC20 {
     uint public totalSupply;
 
-    function balanceOf(address who) constant returns(uint);
+    function balanceOf(address who) public view returns(uint);
 
-    function allowance(address owner, address spender) constant returns(uint);
+    function allowance(address owner, address spender) public view returns(uint);
 
-    function transfer(address to, uint value) returns(bool ok);
+    function transfer(address to, uint value) public returns(bool ok);
 
-    function transferFrom(address from, address to, uint value) returns(bool ok);
+    function transferFrom(address from, address to, uint value) public returns(bool ok);
 
-    function approve(address spender, uint value) returns(bool ok);
+    function approve(address spender, uint value) public returns(bool ok);
 
     event Transfer(address indexed from, address indexed to, uint value);
     event Approval(address indexed owner, address indexed spender, uint value);
@@ -101,7 +94,7 @@ contract ERC20 {
 
 contract Token is ERC20, SafeMath, Ownable {
 
-    function transfer(address _to, uint _value) returns(bool);
+    function transfer(address _to, uint _value) public returns(bool);
 }
 
 // Presale Smart Contract
@@ -123,34 +116,18 @@ contract Presale is SafeMath, Pausable {
 
     uint public minInvestment; // Minimum amount to invest
     uint public maxInvestment; // Maximum investment
-    bool public presaleClosed; // Is presale still on going
-    //enum Step{Unknown, Funding, Distributing, Refunding};
-
-    enum Step {
-        Unknown,
-        Funding,
-        Distributing,
-        Refunding
-    }
-
-
-    uint public tokenPriceWei;
-    Token public token;
+    bool public presaleClosed; // Is presale still on going     
+    uint public tokenPriceWei; // price of token in wei
+    Token public token; // addresss of token contract
 
 
     mapping(address => Backer) public backers; //backer list
-    address[] public backersIndex;
-    uint public maxCap;
-    uint public claimCount;
-    uint public refundCount;
-    uint public totalClaimed;
-    uint public totalRefunded;
-    Step public currentStep;
-
-
-
-    //enum Step{Unknown, Funding, Distributing, Refunding};
-
+    address[] public backersIndex;  // to be able to iterate through backer list
+    uint public maxCap;  // max cap
+    uint public claimCount;  // number of contributors claming tokens
+    uint public refundCount;  // number of contributors receivig refunds
+    uint public totalClaimed;  // total of tokens claimed
+    uint public totalRefunded;  // total of tokens refunded
     mapping(address => uint) public claimed; // Tokens claimed by contibutors
     mapping(address => uint) public refunded; // Tokens refunded to contributors
 
@@ -162,6 +139,11 @@ contract Presale is SafeMath, Pausable {
         _;
     }
 
+    // @notice overwrting this function to ensure that money if any is returned to authorized party. 
+    function kill() {
+        if (msg.sender == owner) 
+            selfdestruct(multisig);
+    }
 
 
     // Events
@@ -172,59 +154,55 @@ contract Presale is SafeMath, Pausable {
 
 
     // Presale  {constructor}
-    // @notice fired when contract is crated. Initilizes all constnat variables.
-    function Presale() {        
+    // @notice fired when contract is crated. Initilizes all needed variables.
+    function Presale() public {        
         multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
         minInvestment = 1 ether;  
         maxInvestment = 100 ether;      
         maxCap = 82500000e18;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start       
-        tokenPriceWei = 1100000000000000;
-        currentStep = Step.Funding;        
+        tokenPriceWei = 1100000000000000;           
     }
 
-    // @notice to loop thoruhg backersIndex and assign tokens
-    // @return  {uint} true if transaction was successful
-    function numberOfBackers() constant returns(uint) {
+    // @notice​ ​return​ ​ number​ of​ ​contributors
+    //​ ​@return​ ​ ​{uint}​ ​ number​ ​ of contributors
+    function numberOfBackers() public view returns(uint) {
         return backersIndex.length;
     }
 
     // @notice to populate website with status of the sale 
-    function returnWebsiteData()constant returns(uint, uint, uint, uint, uint, uint, uint, uint, uint, bool, bool) {
+    function returnWebsiteData() external view returns(uint, uint, uint, uint, uint, uint, uint, uint, uint, bool, bool) {
     
         return (startBlock, endBlock, numberOfBackers(), ethReceived, maxCap, tokensSent, tokenPriceWei, minInvestment, maxInvestment, stopped, presaleClosed );
-
-
     }
 
     // @notice called to mark contributors when tokens are transfered to them after ICO manually. 
     // @param _backer {address} address of beneficiary
     function claimTokensForUser(address _backer) onlyOwner() external returns(bool) {
 
-        require (!backer.refunded); // if refunded, don't allow for another refund            
-        require (!backer.claimed); // if tokens claimed, don't allow refunding            
-        require (backer.tokensToSend != 0); // only continue if are any tokens to send        
+        require (!backer.refunded); // if refunded, don't allow tokens to be claimed           
+        require (!backer.claimed); // if tokens claimed, don't allow to be claimed again            
+        require (backer.tokensToSend != 0); // only continue if there are any tokens to send        
         Backer storage backer = backers[_backer];
-        backer.claimed = true;
+        backer.claimed = true;  // mark record as claimed
 
         if (!token.transfer(_backer, backer.tokensToSend)) 
             revert(); // send claimed tokens to contributor account
 
         TokensClaimed(msg.sender, backer.tokensToSend);  
-
         return true;
     }
 
 
     // {fallback function}
     // @notice It will call internal function which handels allocation of Ether and calculates PPP tokens.
-    function () payable {
+    function () public payable {
         contribute(msg.sender);
     }
 
     // @notice in case refunds are needed, money can be returned to the contract
-    function fundContract() payable onlyOwner() returns (bool) {
+    function fundContract() external payable onlyOwner() returns (bool) {
 
         return true;
     }
@@ -232,49 +210,43 @@ contract Presale is SafeMath, Pausable {
     // @notice It will be called by owner to start the sale    
     // block numbers will be calculated based on current block time average. 
     function start(uint _block) external onlyOwner() {
+        require(_block < 54000);  // 2.5*60*24*15 days = 54000  
         startBlock = block.number;
         endBlock = startBlock + _block;   
     }
 
     // @notice Due to changing average of block time
     // this function will allow on adjusting duration of campaign closer to the end 
+    // @param _block  - number of blocks representing duration 
     function adjustDuration(uint _block) external onlyOwner() {
-
+        
+        require(_block <= 72000);  // 2.5*60*24*20 days = 72000     
+        require(_block > safeSub(block.number, startBlock)); // ensure that endBlock is not set in the past
         endBlock = startBlock + _block;  
     }
 
 
-    // @notice control steps of campaign when proper information is 
-    // presented to contributors
-    // @param _step {Step} 
-    function setStep(Step _step) external onlyOwner() {
-        currentStep = _step;
-    }
-
 
     // @notice set the address of the token contract
     // @param _token  {Token} address of the token contract
-    function setToken(Token _token) onlyOwner() returns(bool) {
+    function setToken(Token _token) public onlyOwner() returns(bool) {
 
         token = _token;
         return true;
-
     }
 
 
     // @notice It will be called by fallback function whenever ether is sent to it
     // @param  _contributor {address} address of beneficiary
     // @return res {bool} true if transaction was successful
-    function contribute(address _contributor) internal stopInEmergency respectTimeFrame returns(bool res) {
 
-        require (currentStep == Step.Funding); // ensure that we are in funding step   
-        require (msg.value >= minInvestment && msg.value <= maxInvestment);   // ensure that min and max contributions amount is met
+    function contribute(address _contributor) internal stopInEmergency respectTimeFrame returns(bool res) {
+         
+        require (msg.value >= minInvestment && msg.value <= maxInvestment);  // ensure that min and max contributions amount is met
                    
         uint tokensToSend = calculateNoOfTokensToSend();
-
-         // Ensure that max cap hasn't been reached
-        require (safeAdd(tokensSent, tokensToSend) <= maxCap);            
-
+        
+        require (safeAdd(tokensSent, tokensToSend) <= maxCap);  // Ensure that max cap hasn't been reached
 
         Backer storage backer = backers[_contributor];
 
@@ -295,9 +267,9 @@ contract Presale is SafeMath, Pausable {
     // @notice It is called by contribute to determine amount of tokens for given contribution    
     // @return tokensToPurchase {uint} value of tokens to purchase
 
-    function calculateNoOfTokensToSend() constant internal returns(uint) {
+    function calculateNoOfTokensToSend() view internal returns(uint) {
          
-        uint tokenAmount = safeDiv(safeMul(msg.value, 1e18), tokenPriceWei);
+        uint tokenAmount = safeMul(msg.value, 1e18) / tokenPriceWei;
         uint ethAmount = msg.value;
 
         if (ethAmount > 50 ether)
@@ -320,10 +292,13 @@ contract Presale is SafeMath, Pausable {
 
 
     // @notice contributors can claim tokens after public ICO is finished
-    function claimTokens() external {
+    // tokens are only claimable when token address is available. 
 
-        require (currentStep == Step.Distributing);   // ensure that we are ready for this step          
-        require (token != address(0));  // address of the token is set after ICO, ensure that it is already set
+    function claimTokens() external {
+       
+        require (token != address(0));  // address of the token is set after ICO
+                                        // claiming of tokens will be only possible once address of token
+                                        // is set through setToken
            
         Backer storage backer = backers[msg.sender];
 
@@ -343,10 +318,14 @@ contract Presale is SafeMath, Pausable {
     }
 
     // @notice allow refund when ICO failed
-    // the step will be set when main ICO finished 
+    // In such a case contract will need to be funded. 
+    // Until contract is funded this function will throw
+
     function refund() external {
 
-        require (currentStep == Step.Refunding);           
+        require(this.balance > 0);  // contract will hold 0 ether at the end of campaign. 
+                                    // Refunds are only possible when contract
+                                    // is funded again through fundContract() 
         Backer storage backer = backers[msg.sender];
 
         require (!backer.claimed); // check if tokens have been allocated already                   
