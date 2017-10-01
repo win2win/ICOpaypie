@@ -128,6 +128,7 @@ contract Presale is SafeMath, Pausable {
     uint public refundCount;  // number of contributors receivig refunds
     uint public totalClaimed;  // total of tokens claimed
     uint public totalRefunded;  // total of tokens refunded
+    bool public mainSaleSuccessfull; // true if main sale was successfull
     mapping(address => uint) public claimed; // Tokens claimed by contibutors
     mapping(address => uint) public refunded; // Tokens refunded to contributors
 
@@ -225,6 +226,7 @@ contract Presale is SafeMath, Pausable {
         endBlock = startBlock + _block;  
     }
 
+    
 
 
     // @notice set the address of the token contract
@@ -232,6 +234,7 @@ contract Presale is SafeMath, Pausable {
     function setToken(Token _token) public onlyOwner() returns(bool) {
 
         token = _token;
+        mainSaleSuccessfull = true;
         return true;
     }
 
@@ -295,6 +298,8 @@ contract Presale is SafeMath, Pausable {
     // tokens are only claimable when token address is available. 
 
     function claimTokens() external {
+
+        require(mainSaleSuccessfull);
        
         require (token != address(0));  // address of the token is set after ICO
                                         // claiming of tokens will be only possible once address of token
@@ -323,13 +328,14 @@ contract Presale is SafeMath, Pausable {
 
     function refund() external {
 
-        require(this.balance > 0);  // contract will hold 0 ether at the end of campaign. 
-                                    // Refunds are only possible when contract
-                                    // is funded again through fundContract() 
+        require(!mainSaleSuccessfull);
+        require(this.balance > 0);  // contract will hold 0 ether at the end of campaign.                                  
+                                    // contract needs to be funded through fundContract() 
         Backer storage backer = backers[msg.sender];
 
         require (!backer.claimed); // check if tokens have been allocated already                   
-        require (!backer.refunded); // check if user has been already refunded            
+        require (!backer.refunded); // check if user has been already refunded     
+        require(backer.weiReceived != 0);  // check if user has actually sent any contributions        
 
         backer.refunded = true; // mark contributor as refunded. 
         totalRefunded = safeAdd(totalRefunded, backer.weiReceived);

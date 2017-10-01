@@ -127,7 +127,8 @@ contract Crowdsale is SafeMath, Pausable {
         _;
     }
 
-
+     // @ntice ovwrite to ensure that if any money are left, they go 
+     // to multisig wallet
      function kill() public {
         if (msg.sender == owner) 
             selfdestruct(multisig);
@@ -143,8 +144,7 @@ contract Crowdsale is SafeMath, Pausable {
 
         multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
         team = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
-        tokensForTeam = 27500000e18;  // tokens for the team
-        //TODO: replace with amount of presale tokens
+        tokensForTeam = 27500000e18;  // tokens for the team       
         totalTokensSent = toknesSoldPresale; // initilaize token number sold in presale            
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start
@@ -191,7 +191,8 @@ contract Crowdsale is SafeMath, Pausable {
     // @notice It will be called by owner to start the sale    
     function start(uint _block) external onlyOwner() {   
 
-        require(_block < 216000);  // 2.5*60*24*60 days = 216000     
+        require(_block < 216000);  // 2.5*60*24*60 days = 216000    
+                                                         
         startBlock = block.number;
         endBlock = safeAdd(startBlock, _block); 
     }
@@ -218,14 +219,14 @@ contract Crowdsale is SafeMath, Pausable {
 
         Backer storage backer = backers[_backer];
 
+         if (backer.weiReceived == 0)      
+            backersIndex.push(_backer);
+
         if (!token.transfer(_backer, tokensToSend)) 
             revert(); // Transfer tokens
         backer.tokensSent = safeAdd(backer.tokensSent, tokensToSend);
         backer.weiReceived = safeAdd(backer.weiReceived, msg.value);
-        ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived  
-
-        if (backer.weiReceived == 0)      
-            backersIndex.push(_backer);
+        ethReceived = safeAdd(ethReceived, msg.value); // Update the total Ether recived         
 
         multisig.transfer(msg.value);   // transfer funds to multisignature wallet             
 
@@ -263,16 +264,13 @@ contract Crowdsale is SafeMath, Pausable {
     function refund()  external stopInEmergency returns (bool) {
 
         require(totalTokensSent < minCap); 
-        require(this.balance > 0);  // contract will hold 0 ether at the end of campaign.                                  
-                                    // contract needs to be funded through fundContract() 
+        require(this.balance > 0);  // contract will hold 0 ether at the end of the campaign.                                  
+                                    // contract needs to be funded through fundContract() for this action
 
         Backer storage backer = backers[msg.sender];
 
-        if (backer.weiReceived == 0)
-            revert();
-
-        require(!backer.refunded);
-        require(backer.tokensSent != 0);
+        require(backer.weiReceived != 0);           
+        require(!backer.refunded);        
 
         if (!token.burn(msg.sender, backer.tokensSent))
             revert();
