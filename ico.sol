@@ -102,18 +102,18 @@ contract Crowdsale is SafeMath, Pausable {
 
     Token public token; // Token contract reference   
     address public multisig; // Multisig contract that will receive the ETH    
-    address public team; // Address at which the team tokens will be sent   
-    uint public tokensForTeam; // Tokens to be allocated to team if campaign succeeds
+    address public team; // Address to which the team tokens will be sent   
+    uint public tokensForTeam; // Tokens to be allocated to the team if campaign succeeds
     uint public ethReceived; // Number of ETH received
     uint public totalTokensSent; // Number of tokens sent to ETH contributors
     uint public startBlock; // Crowdsale start block
     uint public endBlock; // Crowdsale end block
     uint public maxCap; // Maximum number of tokens to sell
     uint public minCap; // Minimum number of tokens to sell    
-    bool public crowdsaleClosed; // Is crowdsale still on going
+    bool public crowdsaleClosed; // Is crowdsale still in progress
     uint public refundCount;  // number of refunds
-    uint public totalRefunded; // total amount of refunds
-    uint public tokenPriceWei; // tokns price
+    uint public totalRefunded; // total amount of refunds in wei
+    uint public tokenPriceWei; // tokn price in wei
 
     mapping(address => Backer) public backers; //backer list
     address[] public backersIndex; // to be able to itarate through backers for verification.  
@@ -127,7 +127,7 @@ contract Crowdsale is SafeMath, Pausable {
         _;
     }
 
-     // @ntice ovwrite to ensure that if any money are left, they go 
+     // @ntice overwrite to ensure that if any money are left, they go 
      // to multisig wallet
      function kill() public {
         if (msg.sender == owner) 
@@ -139,12 +139,12 @@ contract Crowdsale is SafeMath, Pausable {
     event RefundETH(address backer, uint amount);
 
     // Crowdsale  {constructor}
-    // @notice fired when contract is crated. Initilizes all constant and initia variables.
+    // @notice fired when contract is crated. Initilizes all constant and initial variables.
     function Crowdsale(uint toknesSoldPresale) public {
 
         multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
         team = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
-        tokensForTeam = 27500000e18;  // tokens for the team       
+        tokensForTeam = 27500000e18;  // tokens for the team               
         totalTokensSent = toknesSoldPresale; // initilaize token number sold in presale            
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start
@@ -191,7 +191,7 @@ contract Crowdsale is SafeMath, Pausable {
     // @notice It will be called by owner to start the sale    
     function start(uint _block) external onlyOwner() {   
 
-        require(_block < 216000);  // 2.5*60*24*60 days = 216000    
+        require(_block < 216000);  // 2.5*60*24*60 days = 216000  - allow max 60 days for campaign
                                                          
         startBlock = block.number;
         endBlock = safeAdd(startBlock, _block); 
@@ -201,7 +201,7 @@ contract Crowdsale is SafeMath, Pausable {
     // this function will allow on adjusting duration of campaign closer to the end 
     function adjustDuration(uint _block) external onlyOwner() {
 
-        require(_block < 288000);  // 2.5*60*24*80 days = 288000     
+        require(_block < 288000);  // 2.5*60*24*80 days = 288000     // allow for max of 80 days for campaign
         require(_block > safeSub(block.number, startBlock)); // ensure that endBlock is not set in the past
         endBlock = safeAdd(startBlock, _block); 
     }
@@ -246,12 +246,10 @@ contract Crowdsale is SafeMath, Pausable {
         // near the end 
         require (block.number >= endBlock || totalTokensSent >= safeSub(maxCap, 100)); 
         require(totalTokensSent >= minCap);                     
-
-        if (totalTokensSent >= minCap) {               
-            if (!token.transfer(team, token.balanceOf(this))) 
-                revert();
-            token.unlock();
-        }
+                  
+        if (!token.transfer(team, token.balanceOf(this))) 
+            revert();
+        token.unlock();        
         crowdsaleClosed = true;        
     }
 
@@ -261,15 +259,18 @@ contract Crowdsale is SafeMath, Pausable {
         multisig.transfer(this.balance);      
     }
 
+    // @notice it will allow contributors to get refund in case campaign failed
     function refund()  external stopInEmergency returns (bool) {
 
-        require(totalTokensSent < minCap); 
+
+        require (block.number > endBlock); // ensure that campaign is over
+        require(totalTokensSent < minCap); // ensure that campaign failed
         require(this.balance > 0);  // contract will hold 0 ether at the end of the campaign.                                  
                                     // contract needs to be funded through fundContract() for this action
 
         Backer storage backer = backers[msg.sender];
 
-        require(backer.weiReceived != 0);           
+        require(backer.weiReceived > 0);           
         require(!backer.refunded);        
 
         if (!token.burn(msg.sender, backer.tokensSent))
@@ -363,7 +364,7 @@ contract Token is ERC20, SafeMath, Ownable {
         require (_value <= allowed[_from][msg.sender]); // Check if allowed is greater or equal        
         balances[_from] = safeSub(balances[_from], _value); // Subtract from the sender
         balances[_to] = safeAdd(balances[_to],_value); // Add the same to the recipient
-        allowed[_from][msg.sender] = safeSub(allowed[_from][msg.sender],_value);
+        allowed[_from][msg.sender] = safeSub(allowed[_from][msg.sender],_value);  // decrease allowed amount
         Transfer(_from, _to, _value);
         return true;
     }

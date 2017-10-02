@@ -238,6 +238,11 @@ contract Presale is SafeMath, Pausable {
         return true;
     }
 
+    // @notice sets status of main ICO
+    // @param _status {bool} true if public ICO was successful
+    function setMainCampaignStatus(bool _status) public onlyOnwer() {
+        mainSaleSuccessfull = _status;
+    }
 
     // @notice It will be called by fallback function whenever ether is sent to it
     // @param  _contributor {address} address of beneficiary
@@ -328,7 +333,7 @@ contract Presale is SafeMath, Pausable {
 
     function refund() external {
 
-        require(!mainSaleSuccessfull);
+        require(!mainSaleSuccessfull);  // ensure that ICO failed
         require(this.balance > 0);  // contract will hold 0 ether at the end of campaign.                                  
                                     // contract needs to be funded through fundContract() 
         Backer storage backer = backers[msg.sender];
