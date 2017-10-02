@@ -38,6 +38,6 @@
  Function **fundContract()** should be used. 
 
 * in case of failed campaign, contributors can safely withdraw their funds by calling **refund()** function in presale and public sale contracts. 
-* in presale contributors will need to claim their tokens after main ICO has ended. To claim tokens one needs to call function **claimTokens()**
+* in presale contributors will need to claim their tokens after main ICO has ended. To claim tokens one needs to call function **claimTokens()**.
 Contract owner will need to set address of the token contract using function **setToken()** and pass token address as parameter. Also **setMainCampaignStatus()** will need to be called with value *true*, indicating that main ICO has been successfull.  
 
