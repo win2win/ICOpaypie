@@ -13,33 +13,31 @@
 
 ### How do I get set up? 
 
-* Use truffle, remix or      Ethereum Wallet to deploy contract on Ethereum network
+# for Presale
+----------------
+* Deploy Presale contract. 
+
+#For public sale
+----------------
+
+* First deploy **Crwodsale** contract and obtain its address.  
+* Secondly deploy **Token** contract and use address from previous step as its input. Obtain address of the token contract.  
+* Thirdly call function **updateTokenAddress()** of **Crowdsale** contract and provide address from Token contract as an input.
 
 
 ### How do I run
 
-* admin can start the contract by calling start() function
-* contributions are accepted by sending ether to contract address
-* when the campaign is over, admin can run finilize() function to end the campaign and transfer ether to safe multisig wallet. 
-* in case of emergency function emergencyStop() can be called to stop contribution and function release() to start campaign again. 
-* in case of refunds or claiming tokens in presale contract, admin needs to set the appropriate steps through setStep() fucntion
-according to this definitiaon in presale
+* admin can start both presale and public sale the contracts by calling **start()** function
+* contributions are accepted by sending ether to presale or public sale contract address
+* when the campaign is over, admin can run **finilize()** function to end the campaign and transfer remaining tokens to team address in case of public sale. 
+* in case of emergency function **emergencyStop()** can be called to stop contribution and function **release()** to start campaign again. 
+* in case of refunds or claiming tokens in presale contract, admin needs to set the appropriate status of public campaign.
+ function **setMainCampaignStatus()** should be used to set the conditions for refunds or claiming of tokens. 
+ Setting state to *true* will allow contributors to claim purchased tokens, *false* will allow them to claim refunds. 
+* in case of failed campaign, admin will need to fund both contracts so contributors can receive their funds back.
+* function **fundContract()** should be used. 
 
-        enum Step {
-        Unknown,
-        Funding,
-        Distributing,
-        Refunding
-    }
-
-    and public ICO
-
-        enum Step {
-        Unknown,
-        Funding,  
-        Refunding
-    }
-* in case of failed campaign contributors can safly withdraw their funds by calling refund() function. 
-* in presale contributors will need to claim their tokens after ICO. To claim tokens one needs to call function claimTokens()
-and flag "Distributing" has to be set as a step in campaig.
+* in case of failed campaign, contributors can safely withdraw their funds by calling **refund()** function. 
+* in presale contributors will need to claim their tokens after ICO. To claim tokens one needs to call function **claimTokens()**
+Admin will need to set address of the token contract using function **setToken()** and pass token address as parameter. 
 
