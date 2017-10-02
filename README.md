@@ -13,12 +13,12 @@
 
 ### How do I get set up? 
 
-# for Presale
-----------------
-* Deploy Presale contract. 
+### For Presale
 
-#For public sale
-----------------
+* Deploy **Presale** contract. 
+
+### For Public Sale
+
 
 * First deploy **Crwodsale** contract and obtain its address.  
 * Secondly deploy **Token** contract and use address from previous step as its input. Obtain address of the token contract.  
@@ -27,17 +27,17 @@
 
 ### How do I run
 
-* admin can start both presale and public sale the contracts by calling **start()** function
+* contract owner can start both presale and public sale the contracts by calling **start()** function
 * contributions are accepted by sending ether to presale or public sale contract address
-* when the campaign is over, admin can run **finilize()** function to end the campaign and transfer remaining tokens to team address in case of public sale. 
+* when the campaign is over, contract owner can run **finilize()** function to end the campaign and transfer remaining tokens to team address in case of public sale. 
 * in case of emergency function **emergencyStop()** can be called to stop contribution and function **release()** to start campaign again. 
-* in case of refunds or claiming tokens in presale contract, admin needs to set the appropriate status of public campaign.
+* in case of refunds or claiming tokens in presale contract, contract owner needs to set the appropriate status of public campaign.
  function **setMainCampaignStatus()** should be used to set the conditions for refunds or claiming of tokens. 
  Setting state to *true* will allow contributors to claim purchased tokens, *false* will allow them to claim refunds. 
-* in case of failed campaign, admin will need to fund both contracts so contributors can receive their funds back.
+* in case of failed campaign, contract owner will need to fund both contracts so contributors can receive their funds back.
 * function **fundContract()** should be used. 
 
 * in case of failed campaign, contributors can safely withdraw their funds by calling **refund()** function. 
 * in presale contributors will need to claim their tokens after ICO. To claim tokens one needs to call function **claimTokens()**
-Admin will need to set address of the token contract using function **setToken()** and pass token address as parameter. 
+Contract owner will need to set address of the token contract using function **setToken()** and pass token address as parameter. 
 
