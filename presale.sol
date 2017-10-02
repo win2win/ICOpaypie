@@ -213,17 +213,17 @@ contract Presale is SafeMath, Pausable {
     function start(uint _block) external onlyOwner() {
         require(_block < 54000);  // 2.5*60*24*15 days = 54000  
         startBlock = block.number;
-        endBlock = startBlock + _block;   
+        endBlock = safeAdd(startBlock, _block);   
     }
 
     // @notice Due to changing average of block time
     // this function will allow on adjusting duration of campaign closer to the end 
-    // @param _block  - number of blocks representing duration 
+    // @param _block  number of blocks representing duration 
     function adjustDuration(uint _block) external onlyOwner() {
         
         require(_block <= 72000);  // 2.5*60*24*20 days = 72000     
         require(_block > safeSub(block.number, startBlock)); // ensure that endBlock is not set in the past
-        endBlock = startBlock + _block;  
+        endBlock = safeAdd(startBlock, _block);   
     }
 
     
