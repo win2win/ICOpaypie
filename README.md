@@ -27,7 +27,7 @@
 
 ### How do I run
 
-* contract owner can start both presale and public sale the contracts by calling **start()** function
+* contract owner can start both presale and public sale contracts by calling **start()** function
 * contributions are accepted by sending ether to presale or public sale contract address
 * when the campaign is over, contract owner can run **finilize()** function to end the campaign and transfer remaining tokens to team address in case of public sale. 
 * in case of emergency function **emergencyStop()** can be called to stop contribution and function **release()** to start campaign again. 
@@ -35,9 +35,9 @@
  function **setMainCampaignStatus()** should be used to set the conditions for refunds or claiming of tokens. 
  Setting state to *true* will allow contributors to claim purchased tokens, *false* will allow them to claim refunds. 
 * in case of failed campaign, contract owner will need to fund both contracts so contributors can receive their funds back.
-* function **fundContract()** should be used. 
+ Function **fundContract()** should be used. 
 
-* in case of failed campaign, contributors can safely withdraw their funds by calling **refund()** function. 
-* in presale contributors will need to claim their tokens after ICO. To claim tokens one needs to call function **claimTokens()**
-Contract owner will need to set address of the token contract using function **setToken()** and pass token address as parameter. 
+* in case of failed campaign, contributors can safely withdraw their funds by calling **refund()** function in presale and public sale contracts. 
+* in presale contributors will need to claim their tokens after main ICO has ended. To claim tokens one needs to call function **claimTokens()**
+Contract owner will need to set address of the token contract using function **setToken()** and pass token address as parameter. Also **setMainCampaignStatus()** will need to be called with value *true*, indicating that main ICO has been successfull.  
 
