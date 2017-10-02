@@ -122,8 +122,7 @@ contract Crowdsale is SafeMath, Pausable {
 
     // @notice to verify if action is not performed out of the campaing range
     modifier respectTimeFrame() {
-        if ((block.number < startBlock) || (block.number > endBlock)) 
-            revert();
+        require (block.number >= startBlock && block.number <= endBlock);           
         _;
     }
 
@@ -244,8 +243,8 @@ contract Crowdsale is SafeMath, Pausable {
         require(!crowdsaleClosed);        
         // purchasing precise number of tokens might be impractical, thus subtract 100 tokens so finalizition is possible
         // near the end 
-        require (block.number >= endBlock || totalTokensSent >= safeSub(maxCap, 100)); 
-        require(totalTokensSent >= minCap);                     
+        require (block.number > endBlock || totalTokensSent >= safeSub(maxCap, 100)); 
+        require(totalTokensSent >= minCap);  // ensure that campaign was successful         
                   
         if (!token.transfer(team, token.balanceOf(this))) 
             revert();
