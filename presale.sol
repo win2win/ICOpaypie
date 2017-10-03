@@ -240,7 +240,7 @@ contract Presale is SafeMath, Pausable {
 
     // @notice sets status of main ICO
     // @param _status {bool} true if public ICO was successful
-    function setMainCampaignStatus(bool _status) public onlyOnwer() {
+    function setMainCampaignStatus(bool _status) public onlyOwner() {
         mainSaleSuccessfull = _status;
     }
 
