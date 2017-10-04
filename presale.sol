@@ -140,8 +140,8 @@ contract Presale is SafeMath, Pausable {
         _;
     }
 
-    // @notice overwrting this function to ensure that money if any is returned to authorized party. 
-    function kill() {
+    // @notice overwrting this function to ensure that money if any     is returned to authorized party. 
+    function kill() public {
         if (msg.sender == owner) 
             selfdestruct(multisig);
     }
@@ -158,8 +158,8 @@ contract Presale is SafeMath, Pausable {
     // @notice fired when contract is crated. Initilizes all needed variables.
     function Presale() public {        
         multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
-        minInvestment = 1/2 ether;  
-        maxInvestment = 50 ether;      
+        minInvestment = 5e17;  // 0.5 eth
+        maxInvestment = 100 ether;      
         maxCap = 82500000e18;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start       
@@ -280,7 +280,7 @@ contract Presale is SafeMath, Pausable {
         uint tokenAmount = safeMul(msg.value, 1e18) / tokenPriceWei;
         uint ethAmount = msg.value;
 
-        if (ethAmount == 50 ether)
+        if (ethAmount  >= 50 ether)
             return tokenAmount + (tokenAmount * 5) / 100;  // 5% percent bonus
         else if (ethAmount >= 15 ether)
             return tokenAmount + (tokenAmount * 25) / 1000; // 2.5% percent bonus
