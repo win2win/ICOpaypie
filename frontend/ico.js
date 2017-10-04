@@ -31,6 +31,40 @@ function init() {
     gasAmount = 4000000;
 
     retrieveData();
+
+   
+
+}
+
+
+function setTokensSoldMain() {
+
+
+
+    var ICOContradct = web3.eth.contract(ICOABI);
+    var ICOHandle = ICOContradct.at(contractAddrsesICO);
+
+    ICOHandle.totalTokensSent(function (error, tokensSold) {
+
+        // set your html element
+        // e.g.  $("#tokens-sold").html(formatNumber(tokensSold));
+
+    })
+
+}
+
+
+function setTokensSoldPresale() {
+
+    var ICOContradct = web3.eth.contract(preselIBI);
+    var ICOHandle = ICOContradct.at(contractAddressPresale);
+
+    ICOHandle.tokensSent(function (error, tokensSold) {
+
+        // set your html element
+        // e.g.  $("#tokens-sold").html(formatNumber(tokensSold));
+
+    })
 }
 
 
@@ -100,52 +134,52 @@ function retrieveData() {
     });
 }
 
-    function convertTimestamp(timestamp, onlyDate) {
-        var d = new Date(timestamp * 1000), // Convert the passed timestamp to milliseconds
-            yyyy = d.getFullYear(),
-            mm = ('0' + (d.getMonth() + 1)).slice(-2), // Months are zero based. Add leading 0.
-            dd = ('0' + d.getDate()).slice(-2), // Add leading 0.
-            hh = d.getHours(),
-            h = hh,
-            min = ('0' + d.getMinutes()).slice(-2), // Add leading 0.
-            sec = d.getSeconds(),
-            ampm = 'AM',
-            time;
+function convertTimestamp(timestamp, onlyDate) {
+    var d = new Date(timestamp * 1000), // Convert the passed timestamp to milliseconds
+        yyyy = d.getFullYear(),
+        mm = ('0' + (d.getMonth() + 1)).slice(-2), // Months are zero based. Add leading 0.
+        dd = ('0' + d.getDate()).slice(-2), // Add leading 0.
+        hh = d.getHours(),
+        h = hh,
+        min = ('0' + d.getMinutes()).slice(-2), // Add leading 0.
+        sec = d.getSeconds(),
+        ampm = 'AM',
+        time;
 
 
-        yyyy = ('' + yyyy).slice(-2);
+    yyyy = ('' + yyyy).slice(-2);
 
-        if (hh > 12) {
-            h = hh - 12;
-            ampm = 'PM';
-        } else if (hh === 12) {
-            h = 12;
-            ampm = 'PM';
-        } else if (hh == 0) {
-            h = 12;
-        }
-
-        if (onlyDate) {
-            time = mm + '/' + dd + '/' + yyyy;
-
-        } else {
-            // ie: 2013-02-18, 8:35 AM	
-            time = yyyy + '-' + mm + '-' + dd + ', ' + h + ':' + min + ' ' + ampm;
-            time = mm + '/' + dd + '/' + yyyy + '  ' + h + ':' + min + ':' + sec + ' ' + ampm;
-        }
-
-        return time;
+    if (hh > 12) {
+        h = hh - 12;
+        ampm = 'PM';
+    } else if (hh === 12) {
+        h = 12;
+        ampm = 'PM';
+    } else if (hh == 0) {
+        h = 12;
     }
 
+    if (onlyDate) {
+        time = mm + '/' + dd + '/' + yyyy;
 
-    function formatNumber(number) {
-        number = number.toFixed(0) + '';
-        var x = number.split('.');
-        var x1 = x[0];
-        var x2 = x.length > 1 ? '.' + x[1] : '';
-        var rgx = /(\d+)(\d{3})/;
-        while (rgx.test(x1)) {
-            x1 = x1.replace(rgx, '$1' + ',' + '$2');
-        }
-        return x1 + x2;
+    } else {
+        // ie: 2013-02-18, 8:35 AM	
+        time = yyyy + '-' + mm + '-' + dd + ', ' + h + ':' + min + ' ' + ampm;
+        time = mm + '/' + dd + '/' + yyyy + '  ' + h + ':' + min + ':' + sec + ' ' + ampm;
     }
+
+    return time;
+}
+
+
+function formatNumber(number) {
+    number = number.toFixed(0) + '';
+    var x = number.split('.');
+    var x1 = x[0];
+    var x2 = x.length > 1 ? '.' + x[1] : '';
+    var rgx = /(\d+)(\d{3})/;
+    while (rgx.test(x1)) {
+        x1 = x1.replace(rgx, '$1' + ',' + '$2');
+    }
+    return x1 + x2;
+}
