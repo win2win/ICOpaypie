@@ -282,7 +282,7 @@ contract Presale is SafeMath, Pausable {
 
         if (ethAmount == 50 ether)
             return tokenAmount + (tokenAmount * 5) / 100;  // 5% percent bonus
-        else if (ethAmount > 10 ether)
+        else if (ethAmount >= 15 ether)
             return tokenAmount + (tokenAmount * 25) / 1000; // 2.5% percent bonus
         else 
             return tokenAmount;
