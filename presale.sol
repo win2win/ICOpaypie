@@ -159,7 +159,7 @@ contract Presale is SafeMath, Pausable {
     function Presale() public {        
         multisig = 0xF821Fd99BCA2111327b6a411C90BE49dcf78CE0f; 
         minInvestment = 5e17;  // 0.5 eth
-        maxInvestment = 100 ether;      
+        maxInvestment = 75 ether;      
         maxCap = 82500000e18;
         startBlock = 0; // Should wait for the call of the function start
         endBlock = 0; // Should wait for the call of the function start       
