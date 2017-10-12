@@ -25,14 +25,31 @@ function init() {
 
         Web3 = require('web3');
         web3 = new Web3();
-        web3.setProvider(new web3.providers.HttpProvider(onnectionString));
+        web3.setProvider(new web3.providers.HttpProvider(connectionString));
     }
     gasPrice = 20000000000;
     gasAmount = 4000000;
 
     retrieveData();
+    getOneContribution();
 }
 
+
+function getOneContribution(){
+
+    var ICOContradct = web3.eth.contract(preselIBI);
+    var ICOHandle = ICOContradct.at(contractAddressPresale);
+
+    var addressToPool = "0x90215e076b9d97f752b02b44dc036e2142e0376f";
+
+    ICOHandle.backers(addressToPool, function(error, res){
+
+        console.log(res);
+    })
+    
+    
+        
+    }
 
 function retrieveData() {
 
